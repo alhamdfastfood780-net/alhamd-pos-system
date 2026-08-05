@@ -3237,11 +3237,18 @@ function chargeBill(){
   const billNo = "A-" + Math.floor(100000 + Math.random()*899999);
   const cashierName = currentUser ? currentUser.name : 'Salesman';
   const cashierUsername = currentUser ? currentUser.username : '';
-  const sale = {
-    billNo, date: now, cashier: cashierName, cashierUsername,
-    items: bill.map(i=>({...i})), subtotal, deliveryCharge, discountPercent, discount, total,
-    paymentMethod: selectedPaymentMethod
-  };
+ const sale = {
+    billNo,
+    date: new Date(),
+    cashier: currentUser.username,
+    items: cart,
+    subtotal,
+    total,
+    paymentMethod,
+
+    orderType: document.getElementById("orderType").value,
+    customerNumber: document.getElementById("customerNumber").value
+};
   sales.push(sale);
   syncSaleToCloud(sale);
   showReceipt(sale);
