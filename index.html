@@ -3326,16 +3326,19 @@ const customerNumber = document.getElementById("customerNumber").value;
 
 receiptHTML += `
 <div class="r-row">
-    <span>Order Type:</span>
-    <span>${sale.orderType || "Service"}</span>
+    <span>Order Type</span>
+    <span>${orderType}</span>
 </div>
+`;
 
-${sale.orderType === "Delivery" ? `
-<div class="r-row">
-    <span>Customer No:</span>
-    <span>${sale.customerNumber || ""}</span>
-</div>
-` : ""}
+if (orderType === "Delivery") {
+    receiptHTML += `
+    <div class="r-row">
+        <span>Customer No</span>
+        <span>${customerNumber}</span>
+    </div>
+    `;
+}
 }
 function closeReceipt(){
   document.getElementById('receiptModal').classList.add('hidden');
