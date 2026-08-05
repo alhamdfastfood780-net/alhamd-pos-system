@@ -3321,7 +3321,21 @@ ${sale.orderType === 'Delivery' ? `
     </div>
   `;
   document.getElementById('receiptModal').classList.remove('hidden');
+  const orderType = document.getElementById("orderType").value;
+const customerNumber = document.getElementById("customerNumber").value;
 
+receiptHTML += `
+<div class="r-row">
+    <span>Order Type:</span>
+    <span>${sale.orderType || "Service"}</span>
+</div>
+
+${sale.orderType === "Delivery" ? `
+<div class="r-row">
+    <span>Customer No:</span>
+    <span>${sale.customerNumber || ""}</span>
+</div>
+` : ""}
 }
 function closeReceipt(){
   document.getElementById('receiptModal').classList.add('hidden');
