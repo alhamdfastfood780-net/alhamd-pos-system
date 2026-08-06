@@ -1209,7 +1209,8 @@
 <div class="salesman-name-row">
     <label>Order Type</label>
     <select id="orderType" class="salesman-name-input" onchange="toggleOrderType()">
-        <option value="Service">Service</option>
+        <option value="Dine In">Dine In</option>
+        <option value="Take Away">Take Away</option>
         <option value="Delivery">Delivery</option>
     </select>
 </div>
@@ -2035,7 +2036,9 @@ salesCollection.orderBy("date", "desc").onSnapshot((snapshot) => {
       discountPercent: Number(d.discountPercent) || 0,
       discount: Number(d.discount) || 0,
       total: Number(d.total) || 0,
-      paymentMethod: d.paymentMethod === 'online' ? 'online' : 'cash'
+      paymentMethod: d.paymentMethod === 'online' ? 'online' : 'cash',
+      orderType: d.orderType || 'Dine In',
+      customerNumber: d.customerNumber || ''
     };
   });
   FIRESTORE_USAGE_ESTIMATE.salesBytes = snapshot.docs.reduce((sum, doc) => sum + estimateBytes(doc.data()), 0);
@@ -2061,7 +2064,9 @@ function syncSaleToCloud(sale){
     discountPercent: sale.discountPercent,
     discount: sale.discount,
     total: sale.total,
-    paymentMethod: sale.paymentMethod || 'cash'
+    paymentMethod: sale.paymentMethod || 'cash',
+    orderType: sale.orderType || 'Dine In',
+    customerNumber: sale.customerNumber || ''
   }).catch(err => console.error("Cloud sync (save) failed:", err));
 }
 
@@ -3237,10 +3242,14 @@ function chargeBill(){
   const billNo = "A-" + Math.floor(100000 + Math.random()*899999);
   const cashierName = currentUser ? currentUser.name : 'Salesman';
   const cashierUsername = currentUser ? currentUser.username : '';
+  const orderTypeEl = document.getElementById('orderType');
+  const customerNumberEl = document.getElementById('customerNumber');
+  const orderType = orderTypeEl ? orderTypeEl.value : 'Dine In';
+  const customerNumber = (orderType === 'Delivery' && customerNumberEl) ? customerNumberEl.value.trim() : '';
   const sale = {
     billNo, date: now, cashier: cashierName, cashierUsername,
     items: bill.map(i=>({...i})), subtotal, deliveryCharge, discountPercent, discount, total,
-    paymentMethod: selectedPaymentMethod
+    paymentMethod: selectedPaymentMethod, orderType, customerNumber
   };
   sales.push(sale);
   syncSaleToCloud(sale);
@@ -3249,6 +3258,9 @@ function chargeBill(){
   setDeliveryOption('free');
   resetDiscount();
   setPaymentMethod('cash');
+  if(orderTypeEl) orderTypeEl.value = 'Dine In';
+  if(customerNumberEl) customerNumberEl.value = '';
+  toggleOrderType();
   renderBill();
 }
 
@@ -3289,7 +3301,7 @@ function showReceipt(sale){
     <div class="r-row"><span>Payment: ${(sale.paymentMethod || 'cash') === 'online' ? '📲 Online Payment' : '💵 Cash'}</span><span></span></div>
     <div class="r-row">
     <span>Order Type:</span>
-    <span>${sale.orderType || 'Service'}</span>
+    <span>${sale.orderType || 'Dine In'}</span>
 </div>
 
 ${sale.orderType === 'Delivery' ? `
@@ -3321,24 +3333,6 @@ ${sale.orderType === 'Delivery' ? `
     </div>
   `;
   document.getElementById('receiptModal').classList.remove('hidden');
-  const orderType = document.getElementById("orderType").value;
-const customerNumber = document.getElementById("customerNumber").value;
-
-receiptHTML += `
-<div class="r-row">
-    <span>Order Type</span>
-    <span>${orderType}</span>
-</div>
-`;
-
-if (orderType === "Delivery") {
-    receiptHTML += `
-    <div class="r-row">
-        <span>Customer No</span>
-        <span>${customerNumber}</span>
-    </div>
-    `;
-}
 }
 function closeReceipt(){
   document.getElementById('receiptModal').classList.add('hidden');
