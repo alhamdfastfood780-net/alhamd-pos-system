@@ -463,6 +463,24 @@
     position:fixed;inset:0;background:rgba(20,15,10,0.55);
     display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;
   }
+  /* ---------- THEMED CONFIRM MODAL ---------- */
+  .confirm-card{
+    background:var(--cream);
+    width:360px;max-width:100%;
+    border-radius:18px;
+    padding:30px 26px;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.3);
+    border:1px solid rgba(28,17,12,0.08);
+  }
+  .confirm-icon{font-size:40px;margin-bottom:10px;}
+  .confirm-card h3{font-family:'Poppins',sans-serif;font-weight:800;font-size:20px;margin:0 0 8px;color:var(--ink);}
+  .confirm-card p{font-size:14px;color:#6b5c4d;margin:0 0 22px;line-height:1.5;}
+  .confirm-btn-row{display:flex;gap:10px;}
+  .confirm-cancel-btn{flex:1;padding:13px;border-radius:12px;border:1px solid rgba(28,17,12,0.15);background:#fff;color:var(--ink);font-weight:700;font-size:14px;}
+  .confirm-cancel-btn:hover{background:#f4f0ea;}
+  .confirm-ok-btn{flex:1;padding:13px;border-radius:12px;border:none;background:var(--gold-grad);color:#fff;font-weight:800;font-size:14px;transition:transform .15s ease, box-shadow .15s ease;}
+  .confirm-ok-btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(224,82,47,0.35);}
   .receipt{
     background:#fff;width:380px;max-width:100%;max-height:88vh;overflow-y:auto;
     border-radius:6px;padding:28px 26px;font-family:'Courier New',monospace;
@@ -474,6 +492,12 @@
   .receipt h2{text-align:center;margin:0 0 4px;font-size:24px;font-weight:900;letter-spacing:.03em;}
   .receipt .sub{text-align:center;font-size:14px;font-weight:700;color:#222;margin:2px 0;}
   .dash{border:none;border-top:2px dashed #444;margin:14px 0;}
+  .r-status-stamp{
+    text-align:center;font-weight:900;font-size:18px;letter-spacing:.08em;
+    padding:6px 0;margin:8px 0;border:3px solid #1c1310;border-radius:8px;
+  }
+  .r-status-stamp.paid{color:#1e7e34;border-color:#1e7e34;}
+  .r-status-stamp.pending{color:#b3261e;border-color:#b3261e;}
   .r-row{display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin:4px 0;}
   .r-item{margin-top:12px;}
   .r-cols{
@@ -503,6 +527,48 @@
   }
   .print-receipt-btn{background:var(--gold-grad);color:#fff;}
   .close-receipt{margin:0;flex:1;}
+  .edit-receipt-btn{background:var(--amber-deep);color:#fff;}
+
+  /* ---------- EDIT BILL MODAL ---------- */
+  .edit-bill-card{
+    background:var(--cream);width:440px;max-width:100%;max-height:90vh;
+    border-radius:18px;padding:0;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 20px 50px rgba(0,0,0,0.3);
+  }
+  .ebc-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid rgba(28,17,12,0.08);flex-shrink:0;
+  }
+  .ebc-header h3{margin:0;font-family:'Poppins',sans-serif;font-weight:800;font-size:17px;color:var(--ink);}
+  .ebc-close{background:none;border:none;font-size:18px;color:#8a7a68;padding:4px;}
+  .ebc-close:hover{color:var(--ink);}
+  .ebc-body{padding:18px 22px;overflow-y:auto;flex:1;}
+  .ebc-add-item{position:relative;margin-bottom:8px;}
+  .ebc-add-item input{
+    width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e2d8c8;
+    background:#fff;font-size:14px;outline:none;
+  }
+  .ebc-add-item input:focus{border-color:var(--amber-deep);}
+  .ebc-item-results{
+    position:relative;background:#fff;border:1px solid #e2d8c8;border-radius:10px;
+    margin-top:4px;max-height:180px;overflow-y:auto;
+  }
+  .ebc-item-result{
+    display:flex;justify-content:space-between;padding:10px 14px;font-size:13px;
+    font-weight:600;border-bottom:1px solid #f2ede4;cursor:pointer;
+  }
+  .ebc-item-result:last-child{border-bottom:none;}
+  .ebc-item-result:hover{background:#faf5ec;}
+  .ebc-item-result span{color:#8a7a68;font-weight:700;}
+  .bill-item .ebc-remove-btn{
+    background:none;border:none;color:#c0392b;font-size:15px;padding:4px 2px;flex-shrink:0;
+  }
+  .ebc-footer{
+    display:flex;gap:10px;padding:16px 22px;border-top:1px solid rgba(28,17,12,0.08);flex-shrink:0;
+  }
+  .ebc-footer button{flex:1;padding:13px;border-radius:10px;border:none;font-weight:800;font-size:14px;}
+  .ebc-cancel-btn{background:#fff;border:1px solid rgba(28,17,12,0.15) !important;color:var(--ink);}
+  .ebc-save-btn{background:var(--gold-grad);color:#fff;}
 
   /* ---------- DELIVERY CHARGES ---------- */
   .delivery-row{margin:14px 0 6px;padding-top:14px;border-top:1px dashed #eee;}
@@ -1255,6 +1321,13 @@
             <button type="button" class="cat-pill" id="payMethodOnline" onclick="setPaymentMethod('online')">📲 Online</button>
           </div>
         </div>
+        <div class="delivery-row" id="paymentStatusRow">
+          <div class="delivery-label" style="margin-bottom:8px;">🧾 Bill Status</div>
+          <div class="cat-row" style="margin:0;">
+            <button type="button" class="cat-pill active" id="payStatusPaid" onclick="setPaymentStatus('paid')">✅ Paid</button>
+            <button type="button" class="cat-pill" id="payStatusPending" onclick="setPaymentStatus('pending')">🕒 Pending</button>
+          </div>
+        </div>
         <div class="bill-totals" id="billTotalsWrap"></div>
         <button class="charge-btn" id="chargeBtn" onclick="chargeBill()" disabled>Charge &amp; Save · Rs 0</button>
       </div>
@@ -1321,6 +1394,7 @@
       <nav class="admin-nav">
         <button class="admin-nav-btn active" id="adminNavDashboard" onclick="showAdminSection('dashboard')"><span class="nicon">🏠</span><span>Dashboard</span></button>
         <button class="admin-nav-btn" id="adminNavPOS" onclick="showAdminSection('pos')"><span class="nicon">🛒</span><span>POS / Sales</span></button>
+        <button class="admin-nav-btn" id="adminNavUnpaid" onclick="showAdminSection('unpaid')"><span class="nicon">🕒</span><span>Unpaid Bills <span id="unpaidNavBadge" style="background:#e0522f;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></span></button>
         <button class="admin-nav-btn" id="adminNavMenu" onclick="showAdminSection('menu')"><span class="nicon">🍔</span><span>Menu Management</span></button>
         <button class="admin-nav-btn" id="adminNavDeals" onclick="showAdminSection('deals')"><span class="nicon">🔥</span><span>Limited Deals</span></button>
         <button class="admin-nav-btn" id="adminNavExpenses" onclick="showAdminSection('expenses')"><span class="nicon">💰</span><span>Expenses</span></button>
@@ -1483,12 +1557,25 @@
     </div>
   </div>
   <table>
-    <thead><tr><th>Bill #</th><th>Date</th><th>Cashier</th><th>Payment</th><th>Total</th><th>View</th></tr></thead>
+    <thead><tr><th>Bill #</th><th>Date</th><th>Cashier</th><th>Payment</th><th>Status</th><th>Total</th><th>View</th></tr></thead>
     <tbody id="reportSalesTableBody"></tbody>
   </table>
 </div>
       </div>
       <!-- ================= /POS / SALES ================= -->
+
+      <!-- ================= UNPAID BILLS ================= -->
+      <div class="admin-section hidden" id="secUnpaid">
+      <div class="panel">
+        <h3>🕒 Unpaid Bills</h3>
+        <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Every bill marked Pending, from any day, stays listed here until you mark it Paid.</p>
+        <table>
+          <thead><tr><th>Bill #</th><th>Date</th><th>Cashier</th><th>Total</th><th>Action</th></tr></thead>
+          <tbody id="unpaidSalesTableBody"></tbody>
+        </table>
+      </div>
+      </div>
+      <!-- ================= /UNPAID BILLS ================= -->
 
       <!-- ================= MENU MANAGEMENT ================= -->
       <div class="admin-section hidden" id="secMenu">
@@ -1754,6 +1841,78 @@
 <!-- ============ RECEIPT MODAL ============ -->
 <div id="receiptModal" class="modal-overlay hidden">
   <div class="receipt" id="receiptContent"></div>
+</div>
+
+<!-- ============ THEMED CONFIRM MODAL ============ -->
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="confirm-card">
+    <div class="confirm-icon" id="confirmModalIcon">🧾</div>
+    <h3 id="confirmModalTitle">Are you sure?</h3>
+    <p id="confirmModalMsg"></p>
+    <div class="confirm-btn-row">
+      <button class="confirm-cancel-btn" onclick="closeConfirmModal()">Cancel</button>
+      <button class="confirm-ok-btn" id="confirmModalOkBtn" onclick="confirmModalConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EDIT BILL MODAL ============ -->
+<div id="editBillModal" class="modal-overlay hidden">
+  <div class="edit-bill-card">
+    <div class="ebc-header">
+      <h3>✏️ Edit Bill <span id="editBillNoLabel"></span></h3>
+      <button class="ebc-close" onclick="closeEditBillModal()">✕</button>
+    </div>
+    <div class="ebc-body">
+      <div class="ebc-add-item">
+        <input type="text" id="editBillItemSearch" placeholder="Search a product to add..." oninput="editBillSearchProducts()">
+        <div id="editBillItemResults" class="ebc-item-results hidden"></div>
+      </div>
+      <div id="editBillItemsWrap"></div>
+
+      <div class="delivery-row" id="editBillDeliveryRow">
+        <div class="delivery-toggle-wrap">
+          <div class="delivery-label">🚚 Delivery Charges (Rs <span id="editBillDeliveryAmountLabel">250</span>)</div>
+          <label class="delivery-switch">
+            <input type="checkbox" id="editBillDeliveryToggle" onchange="editBillRecalc()">
+            <span class="delivery-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="delivery-row" id="editBillDiscountRow">
+        <div class="delivery-toggle-wrap">
+          <div class="delivery-label">🏷️ Discount</div>
+          <label class="delivery-switch">
+            <input type="checkbox" id="editBillDiscountToggle" onchange="editBillToggleDiscount()">
+            <span class="delivery-slider"></span>
+          </label>
+        </div>
+        <div class="discount-amount-wrap hidden" id="editBillDiscountAmountWrap">
+          <input type="number" min="0" max="100" step="0.5" id="editBillDiscountInput" placeholder="Discount %" oninput="editBillRecalc()">
+          <span class="discount-percent-sign">%</span>
+        </div>
+      </div>
+      <div class="delivery-row" id="editBillPaymentMethodRow">
+        <div class="delivery-label" style="margin-bottom:8px;">💳 Payment Method</div>
+        <div class="cat-row" style="margin:0;">
+          <button type="button" class="cat-pill" id="editBillPayCash" onclick="editBillSetPaymentMethod('cash')">💵 Cash</button>
+          <button type="button" class="cat-pill" id="editBillPayOnline" onclick="editBillSetPaymentMethod('online')">📲 Online</button>
+        </div>
+      </div>
+      <div class="delivery-row" id="editBillPaymentStatusRow">
+        <div class="delivery-label" style="margin-bottom:8px;">🧾 Bill Status</div>
+        <div class="cat-row" style="margin:0;">
+          <button type="button" class="cat-pill" id="editBillStatusPaid" onclick="editBillSetPaymentStatus('paid')">✅ Paid</button>
+          <button type="button" class="cat-pill" id="editBillStatusPending" onclick="editBillSetPaymentStatus('pending')">🕒 Pending</button>
+        </div>
+      </div>
+      <div class="bill-totals" id="editBillTotalsWrap"></div>
+    </div>
+    <div class="ebc-footer">
+      <button class="ebc-cancel-btn" onclick="closeEditBillModal()">Cancel</button>
+      <button class="ebc-save-btn" onclick="saveEditedBill()">💾 Save Changes</button>
+    </div>
+  </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -2037,6 +2196,7 @@ salesCollection.orderBy("date", "desc").onSnapshot((snapshot) => {
       discount: Number(d.discount) || 0,
       total: Number(d.total) || 0,
       paymentMethod: d.paymentMethod === 'online' ? 'online' : 'cash',
+      paymentStatus: d.paymentStatus === 'pending' ? 'pending' : 'paid',
       orderType: d.orderType || 'Dine In',
       customerNumber: d.customerNumber || ''
     };
@@ -2065,9 +2225,36 @@ function syncSaleToCloud(sale){
     discount: sale.discount,
     total: sale.total,
     paymentMethod: sale.paymentMethod || 'cash',
+    paymentStatus: sale.paymentStatus || 'paid',
     orderType: sale.orderType || 'Dine In',
     customerNumber: sale.customerNumber || ''
   }).catch(err => console.error("Cloud sync (save) failed:", err));
+}
+
+function markBillPaid(billNo){
+  const sale = sales.find(s => s.billNo === billNo);
+  if(!sale) return;
+  showConfirmModal(
+    'Mark as Paid?',
+    'Bill ' + billNo + ' (Rs ' + sale.total + ') will be marked as paid and moved out of the unpaid list.',
+    '✅ Yes, Mark Paid',
+    function(){
+      const prevStatus = sale.paymentStatus;
+      sale.paymentStatus = 'paid';
+      salesCollection.doc(String(billNo)).update({ paymentStatus: 'paid' })
+        .then(() => {
+          renderUnpaidBills();
+          renderSalesReport();
+        })
+        .catch(err => {
+          console.error("Cloud sync (mark paid) failed:", err);
+          sale.paymentStatus = prevStatus;
+          alert("Couldn't mark this bill as paid — check your connection and try again.");
+          renderUnpaidBills();
+        });
+    },
+    '✅'
+  );
 }
 
 function syncDeleteToCloud(billNo){
@@ -2276,6 +2463,15 @@ function setPaymentMethod(method){
   const onlineBtn = document.getElementById('payMethodOnline');
   if(cashBtn) cashBtn.classList.toggle('active', method === 'cash');
   if(onlineBtn) onlineBtn.classList.toggle('active', method === 'online');
+}
+
+let selectedPaymentStatus = "paid"; // "paid" | "pending"
+function setPaymentStatus(status){
+  selectedPaymentStatus = status;
+  const paidBtn = document.getElementById('payStatusPaid');
+  const pendingBtn = document.getElementById('payStatusPending');
+  if(paidBtn) paidBtn.classList.toggle('active', status === 'paid');
+  if(pendingBtn) pendingBtn.classList.toggle('active', status === 'pending');
 }
 
 let selectedExpensePaymentMethod = "cash"; // "cash" | "online"
@@ -3060,6 +3256,7 @@ function renderProductManagerList(){
 const ADMIN_SECTION_MAP = {
   dashboard: { sec:'secDashboard', nav:'adminNavDashboard', title:'Dashboard' },
   pos:       { sec:'secPOS',       nav:'adminNavPOS',       title:'POS / Sales' },
+  unpaid:    { sec:'secUnpaid',    nav:'adminNavUnpaid',    title:'Unpaid Bills' },
   menu:      { sec:'secMenu',      nav:'adminNavMenu',      title:'Menu Management' },
   deals:     { sec:'secDeals',     nav:'adminNavDeals',     title:'Limited Deals' },
   expenses:  { sec:'secExpenses',  nav:'adminNavExpenses',  title:'Expenses' },
@@ -3076,6 +3273,7 @@ function showAdminSection(name){
   });
   const titleEl = document.getElementById('adminSectionTitle');
   if(titleEl) titleEl.textContent = target.title;
+  if(name === 'unpaid') renderUnpaidBills();
 }
 function logout(){
   currentUser = null;
@@ -3249,7 +3447,7 @@ function chargeBill(){
   const sale = {
     billNo, date: now, cashier: cashierName, cashierUsername,
     items: bill.map(i=>({...i})), subtotal, deliveryCharge, discountPercent, discount, total,
-    paymentMethod: selectedPaymentMethod, orderType, customerNumber
+    paymentMethod: selectedPaymentMethod, paymentStatus: selectedPaymentStatus, orderType, customerNumber
   };
   sales.push(sale);
   syncSaleToCloud(sale);
@@ -3258,6 +3456,7 @@ function chargeBill(){
   setDeliveryOption('free');
   resetDiscount();
   setPaymentMethod('cash');
+  setPaymentStatus('paid');
   if(orderTypeEl) orderTypeEl.value = 'Dine In';
   if(customerNumberEl) customerNumberEl.value = '';
   toggleOrderType();
@@ -3299,6 +3498,7 @@ function showReceipt(sale){
     <div class="r-row"><span>Bill #: ${sale.billNo}</span><span>${formatDate(sale.date)}</span></div>
     <div class="r-row"><span>Cashier: ${sale.cashier}</span><span>${formatTime(sale.date)}</span></div>
     <div class="r-row"><span>Payment: ${(sale.paymentMethod || 'cash') === 'online' ? '📲 Online Payment' : '💵 Cash'}</span><span></span></div>
+    <div class="r-status-stamp ${(sale.paymentStatus || 'paid') === 'pending' ? 'pending' : 'paid'}">${(sale.paymentStatus || 'paid') === 'pending' ? 'PENDING' : 'PAID'}</div>
     <div class="r-row">
     <span>Order Type:</span>
     <span>${sale.orderType || 'Dine In'}</span>
@@ -3329,6 +3529,7 @@ ${sale.orderType === 'Delivery' ? `
     <p class="thanks">Thank you for your order!<br>Please come again</p>
     <div class="receipt-btn-row no-print">
       <button class="close-receipt" onclick="closeReceipt()">Close</button>
+      <button class="edit-receipt-btn" onclick="openEditBillModal('${sale.billNo}')">✏️ Edit</button>
       <button class="print-receipt-btn" onclick="printReceipt()">🖨️ Print</button>
     </div>
   `;
@@ -3338,8 +3539,225 @@ function closeReceipt(){
   document.getElementById('receiptModal').classList.add('hidden');
   if(currentUser && currentUser.role === 'owner') renderOwnerDashboard();
 }
+
+/* ---------------- THEMED CONFIRM MODAL ---------------- */
+let _confirmModalCallback = null;
+function showConfirmModal(title, message, okLabel, onConfirm, icon){
+  document.getElementById('confirmModalTitle').textContent = title;
+  document.getElementById('confirmModalMsg').textContent = message;
+  document.getElementById('confirmModalOkBtn').textContent = okLabel || 'Confirm';
+  document.getElementById('confirmModalIcon').textContent = icon || '🧾';
+  _confirmModalCallback = onConfirm;
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+function closeConfirmModal(){
+  document.getElementById('confirmModal').classList.add('hidden');
+  _confirmModalCallback = null;
+}
+function confirmModalConfirm(){
+  const cb = _confirmModalCallback;
+  closeConfirmModal();
+  if(typeof cb === 'function') cb();
+}
 function printReceipt(){
   window.print();
+}
+
+/* ---------------- EDIT BILL (after save, before/after print) ---------------- */
+let editingBill = null;
+
+function openEditBillModal(billNo){
+  const sale = sales.find(s => s.billNo === billNo);
+  if(!sale) return;
+  editingBill = {
+    billNo: sale.billNo,
+    items: sale.items.map(i => ({...i})),
+    paymentMethod: sale.paymentMethod || 'cash',
+    paymentStatus: sale.paymentStatus || 'paid'
+  };
+
+  document.getElementById('editBillNoLabel').textContent = '#' + sale.billNo;
+  document.getElementById('editBillItemSearch').value = '';
+  document.getElementById('editBillItemResults').innerHTML = '';
+  document.getElementById('editBillItemResults').classList.add('hidden');
+  document.getElementById('editBillDeliveryAmountLabel').textContent = deliveryChargeAmount;
+
+  const deliveryToggle = document.getElementById('editBillDeliveryToggle');
+  if(deliveryToggle) deliveryToggle.checked = sale.deliveryCharge > 0;
+
+  const discountOn = (sale.discountPercent || 0) > 0;
+  const discountToggle = document.getElementById('editBillDiscountToggle');
+  if(discountToggle) discountToggle.checked = discountOn;
+  document.getElementById('editBillDiscountInput').value = sale.discountPercent || 0;
+  document.getElementById('editBillDiscountAmountWrap').classList.toggle('hidden', !discountOn);
+
+  editBillSetPaymentMethod(editingBill.paymentMethod);
+  editBillSetPaymentStatus(editingBill.paymentStatus);
+
+  renderEditBillItems();
+  document.getElementById('editBillModal').classList.remove('hidden');
+}
+
+function closeEditBillModal(){
+  document.getElementById('editBillModal').classList.add('hidden');
+  editingBill = null;
+}
+
+function renderEditBillItems(){
+  const wrap = document.getElementById('editBillItemsWrap');
+  if(!wrap || !editingBill) return;
+  if(editingBill.items.length === 0){
+    wrap.innerHTML = `<div class="bill-empty">No items — search above to add one.</div>`;
+  } else {
+    wrap.innerHTML = editingBill.items.map((item, idx) => `
+      <div class="bill-item">
+        <div>
+          <div class="bi-name">${item.name}</div>
+          <div class="bi-sub">@ Rs ${item.price}</div>
+        </div>
+        <div class="qty-ctrl">
+          <button onclick="editBillChangeQty(${idx}, -1)">−</button>
+          <span>${item.qty}</span>
+          <button onclick="editBillChangeQty(${idx}, 1)">+</button>
+        </div>
+        <div class="bi-amt">Rs ${item.price*item.qty}</div>
+        <button class="ebc-remove-btn" onclick="editBillRemoveItem(${idx})">🗑️</button>
+      </div>
+    `).join('');
+  }
+  editBillRecalc();
+}
+
+function editBillChangeQty(idx, delta){
+  if(!editingBill) return;
+  const item = editingBill.items[idx];
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) editingBill.items.splice(idx, 1);
+  renderEditBillItems();
+}
+
+function editBillRemoveItem(idx){
+  if(!editingBill) return;
+  editingBill.items.splice(idx, 1);
+  renderEditBillItems();
+}
+
+function editBillSearchProducts(){
+  const q = document.getElementById('editBillItemSearch').value.trim().toLowerCase();
+  const resultsEl = document.getElementById('editBillItemResults');
+  if(!q){ resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); return; }
+
+  const matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(q)).slice(0, 6);
+  const rows = [];
+  matches.forEach(p => {
+    if(p.variants && p.variants.length){
+      p.variants.forEach(v => rows.push({ name: `${p.name} (${v.label})`, price: v.price }));
+    } else {
+      rows.push({ name: p.name, price: p.price });
+    }
+  });
+
+  if(rows.length === 0){
+    resultsEl.innerHTML = `<div class="ebc-item-result" style="cursor:default;">No matching products</div>`;
+    resultsEl.classList.remove('hidden');
+    return;
+  }
+
+  resultsEl.innerHTML = rows.map((r, i) => `
+    <div class="ebc-item-result" data-i="${i}"><span>${r.name}</span><span>Rs ${r.price}</span></div>
+  `).join('');
+  resultsEl.classList.remove('hidden');
+  resultsEl.querySelectorAll('.ebc-item-result[data-i]').forEach(el => {
+    el.addEventListener('click', function(){
+      const r = rows[parseInt(el.dataset.i, 10)];
+      editBillAddItem(r.name, r.price);
+    });
+  });
+}
+
+function editBillAddItem(name, price){
+  if(!editingBill) return;
+  const existing = editingBill.items.find(i => i.name === name);
+  if(existing) existing.qty++;
+  else editingBill.items.push({ name, price, qty: 1 });
+  document.getElementById('editBillItemSearch').value = '';
+  document.getElementById('editBillItemResults').innerHTML = '';
+  document.getElementById('editBillItemResults').classList.add('hidden');
+  renderEditBillItems();
+}
+
+function editBillToggleDiscount(){
+  const on = document.getElementById('editBillDiscountToggle').checked;
+  document.getElementById('editBillDiscountAmountWrap').classList.toggle('hidden', !on);
+  editBillRecalc();
+}
+
+function editBillSetPaymentMethod(method){
+  if(editingBill) editingBill.paymentMethod = method;
+  const cashBtn = document.getElementById('editBillPayCash');
+  const onlineBtn = document.getElementById('editBillPayOnline');
+  if(cashBtn) cashBtn.classList.toggle('active', method === 'cash');
+  if(onlineBtn) onlineBtn.classList.toggle('active', method === 'online');
+}
+
+function editBillSetPaymentStatus(status){
+  if(editingBill) editingBill.paymentStatus = status;
+  const paidBtn = document.getElementById('editBillStatusPaid');
+  const pendingBtn = document.getElementById('editBillStatusPending');
+  if(paidBtn) paidBtn.classList.toggle('active', status === 'paid');
+  if(pendingBtn) pendingBtn.classList.toggle('active', status === 'pending');
+}
+
+function editBillRecalc(){
+  if(!editingBill) return;
+  const subtotal = editingBill.items.reduce((s,i) => s + i.price*i.qty, 0);
+  const deliveryToggle = document.getElementById('editBillDeliveryToggle');
+  const deliveryCharge = (deliveryToggle && deliveryToggle.checked) ? deliveryChargeAmount : 0;
+  const discountToggle = document.getElementById('editBillDiscountToggle');
+  const discountOn = discountToggle && discountToggle.checked;
+  const discountPercent = discountOn ? (parseFloat(document.getElementById('editBillDiscountInput').value) || 0) : 0;
+  const discount = discountOn ? Math.round(subtotal * discountPercent / 100) : 0;
+  const total = Math.max(0, subtotal + deliveryCharge - discount);
+  editingBill._calc = { subtotal, deliveryCharge, discountPercent, discount, total };
+  const totalsWrap = document.getElementById('editBillTotalsWrap');
+  if(totalsWrap) totalsWrap.innerHTML = billTotalsHTML(subtotal, deliveryCharge, discountPercent, discount, total);
+}
+
+function saveEditedBill(){
+  if(!editingBill) return;
+  if(editingBill.items.length === 0){
+    alert('A bill needs at least one item — add one or delete the whole bill instead.');
+    return;
+  }
+  const sale = sales.find(s => s.billNo === editingBill.billNo);
+  if(!sale) return;
+
+  editBillRecalc();
+  const c = editingBill._calc;
+  const updated = {
+    items: editingBill.items.map(i => ({...i})),
+    subtotal: c.subtotal,
+    deliveryCharge: c.deliveryCharge,
+    discountPercent: c.discountPercent,
+    discount: c.discount,
+    total: c.total,
+    paymentMethod: editingBill.paymentMethod,
+    paymentStatus: editingBill.paymentStatus
+  };
+
+  salesCollection.doc(String(sale.billNo)).update(updated)
+    .then(() => {
+      Object.assign(sale, updated);
+      closeEditBillModal();
+      renderSalesReport();
+      renderUnpaidBills();
+      showReceipt(sale);
+    })
+    .catch(err => {
+      console.error("Cloud sync (edit bill) failed:", err);
+      alert("Couldn't save changes — check your connection and try again.");
+    });
 }
 
 /* ---------------- SALES REPORT (Daily / Weekly / Monthly / Yearly) ---------------- */
@@ -3385,6 +3803,38 @@ function renderSalesReport(){
   document.getElementById('reportSales').textContent = `Rs ${salesTotal.toLocaleString()}`;
 
   renderReportDetails(periodSales);
+  renderUnpaidBills();
+}
+
+/* ---------------- UNPAID BILLS ---------------- */
+function renderUnpaidBills(){
+  const badge = document.getElementById('unpaidNavBadge');
+  const body = document.getElementById('unpaidSalesTableBody');
+  if(!body) return;
+
+  const unpaid = sales
+    .filter(s => (s.paymentStatus || 'paid') === 'pending')
+    .sort((a,b) => b.date - a.date);
+
+  if(badge) badge.textContent = unpaid.length;
+
+  if(unpaid.length === 0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="5">No unpaid bills right now 🎉</td></tr>`;
+  } else {
+    body.innerHTML = unpaid.map(s => `
+      <tr>
+        <td>${s.billNo}</td>
+        <td>${formatDate(s.date)}, ${formatTime(s.date)}</td>
+        <td>${s.cashier}</td>
+        <td>Rs ${s.total}</td>
+        <td>
+          <button class="view-btn" onclick="viewSale('${s.billNo}')">👁</button>
+          <button class="view-btn" onclick="openEditBillModal('${s.billNo}')">✏️</button>
+          <button class="expense-del-btn" style="background:var(--gold-grad);color:#fff;" onclick="markBillPaid('${s.billNo}')">✅ Mark Paid</button>
+        </td>
+      </tr>
+    `).join('');
+  }
 }
 
 function renderReportDetails(periodSales){
@@ -3392,7 +3842,7 @@ function renderReportDetails(periodSales){
   if(!salesBody) return;
 
   if(periodSales.length === 0){
-    salesBody.innerHTML = `<tr class="empty-row"><td colspan="6">No bills in this period.</td></tr>`;
+    salesBody.innerHTML = `<tr class="empty-row"><td colspan="7">No bills in this period.</td></tr>`;
   } else {
     salesBody.innerHTML = periodSales.map(s => `
       <tr>
@@ -3400,9 +3850,11 @@ function renderReportDetails(periodSales){
         <td>${formatDate(s.date)}, ${formatTime(s.date)}</td>
         <td>${s.cashier}</td>
         <td>${(s.paymentMethod || 'cash') === 'online' ? '📲 Online' : '💵 Cash'}</td>
+        <td>${(s.paymentStatus || 'paid') === 'pending' ? '🕒 Pending' : '✅ Paid'}</td>
         <td>Rs ${s.total}</td>
         <td>
           <button class="view-btn" onclick="viewSale('${s.billNo}')">👁</button>
+          <button class="view-btn" onclick="openEditBillModal('${s.billNo}')">✏️</button>
           <button class="expense-del-btn" onclick="deleteSale('${s.billNo}')">🗑️</button>
         </td>
       </tr>
