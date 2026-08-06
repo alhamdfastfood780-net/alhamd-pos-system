@@ -493,11 +493,12 @@
   .receipt .sub{text-align:center;font-size:14px;font-weight:700;color:#222;margin:2px 0;}
   .dash{border:none;border-top:2px dashed #444;margin:14px 0;}
   .r-status-stamp{
-    text-align:center;font-weight:900;font-size:18px;letter-spacing:.08em;
-    padding:6px 0;margin:8px 0;border:3px solid #1c1310;border-radius:8px;
+    text-align:center;font-weight:900;font-size:18px;letter-spacing:.14em;
+    padding:8px 0;margin:10px 0;
+    border-top:2px dashed #1c1310;border-bottom:2px dashed #1c1310;
   }
-  .r-status-stamp.paid{color:#1e7e34;border-color:#1e7e34;}
-  .r-status-stamp.pending{color:#b3261e;border-color:#b3261e;}
+  .r-status-stamp.paid{color:#1e7e34;}
+  .r-status-stamp.pending{color:#b3261e;}
   .r-row{display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin:4px 0;}
   .r-item{margin-top:12px;}
   .r-cols{
@@ -653,6 +654,11 @@
     .receipt h2{ font-size:30px; font-weight:900; }
     .receipt .sub{ font-size:18px; font-weight:800; }
     .dash{ border-top:3px dashed #000; }
+    .r-status-stamp{
+      font-size:26px; font-weight:900; letter-spacing:.16em;
+      border-top:3px dashed #000; border-bottom:3px dashed #000;
+      color:#000 !important;
+    }
     .r-row{ font-size:20px; font-weight:800; }
     .r-header.r-cols{ font-size:19px; font-weight:900; }
     .r-item-name{ font-size:20px; font-weight:900; }
