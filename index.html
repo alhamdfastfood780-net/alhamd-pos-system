@@ -1158,7 +1158,7 @@
 }
 
 /* ============================================================
-   MOBILE / APP-INSTALL OPTIMIZATION
+   MOBILE OPTIMIZATION
    ============================================================ */
 
 /* iPhone notch / home-indicator safe areas (matters once installed as an app) */
@@ -1172,10 +1172,75 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   -webkit-overflow-scrolling:touch;
 }
 
+/* ---------- HEADER: hamburger menu button (hidden on desktop) ---------- */
+.mobile-menu-btn{
+  display:none;
+  align-items:center;justify-content:center;
+  width:40px;height:40px;flex-shrink:0;
+  border:1px solid #e2e2e2;border-radius:11px;background:#fff;color:#3a3a3a;
+  transition:background .15s ease;
+}
+.mobile-menu-btn:hover{ background:#f7f7f7; }
+.mobile-menu-btn svg{ width:20px;height:20px; }
+
+/* ---------- SALESMAN: actions collapse into a dropdown on mobile ---------- */
+.mobile-actions-dropdown{
+  position:fixed;
+  top:calc(66px + env(safe-area-inset-top));
+  right:14px;
+  width:216px;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 16px 40px rgba(0,0,0,0.18);
+  padding:8px;
+  z-index:998;
+  display:none;
+  flex-direction:column;
+  gap:2px;
+}
+.mobile-actions-dropdown.show{ display:flex; }
+.mobile-actions-item{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:13px 14px;border-radius:11px;border:none;background:none;
+  font-family:'Poppins',sans-serif;font-weight:600;font-size:14px;color:#333;text-align:left;
+}
+.mobile-actions-item:hover, .mobile-actions-item:active{ background:#f7f7f7; }
+.mobile-actions-item.active{ background:var(--gold-grad); color:#fff; }
+.mobile-actions-item .nicon{ font-size:17px; }
+
+/* ---------- OWNER: sidebar becomes an off-canvas drawer on mobile ---------- */
+.admin-overlay{
+  position:fixed;inset:0;background:rgba(20,15,10,0.5);
+  z-index:1000;display:none;
+}
+.admin-overlay.show{ display:block; }
+
 @media (max-width:900px){
   .pos-wrap{ flex-direction:column; padding:16px; gap:16px; }
   .pos-main{ order:1; }
   .bill-panel{ width:100%; position:static; order:2; top:auto; }
+
+  .admin-layout{ flex-direction:column; }
+  .admin-sidebar{
+    position:fixed; top:0; left:0; height:100vh; width:250px;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom));
+    transform:translateX(-104%);
+    transition:transform .28s cubic-bezier(.2,.8,.2,1);
+    flex-direction:column; overflow-x:hidden; overflow-y:auto;
+    z-index:1001; box-shadow:none;
+  }
+  .admin-sidebar.open{ transform:translateX(0); box-shadow:12px 0 40px rgba(0,0,0,0.2); }
+  .admin-sidebar .sidebar-brand{ display:flex; }
+  .admin-nav{ flex-direction:column; gap:5px; }
+  .admin-nav-btn{
+    flex-direction:row; justify-content:flex-start; gap:12px;
+    font-size:14.5px; padding:12px 14px; white-space:normal; text-align:left;
+  }
+  .admin-nav-btn.logout-nav{
+    margin-top:14px; border-top:1px solid rgba(28,17,12,0.1);
+    border-left:none; border-radius:12px; padding-top:14px;
+  }
+  .mobile-menu-btn{ display:flex; }
 }
 
 @media (max-width:768px){
@@ -1184,11 +1249,20 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   table{ min-width:560px; }
 }
 
+@media (max-width:680px){
+  .mobile-menu-btn{ display:flex; }
+  #salesmanNavIcons{ display:none; }
+}
+
 @media (max-width:640px){
-  .topbar{ padding:10px 16px; flex-wrap:wrap; gap:10px; }
-  .brand-title{ font-size:16px; }
-  .brand-sub{ font-size:11.5px; }
-  .logo-flame{ width:38px; height:38px; }
+  .topbar{ padding:10px 14px; flex-wrap:nowrap; gap:8px; }
+  .brandmark{ min-width:0; flex:1; overflow:hidden; }
+  .brand-title{ font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .brand-sub{ font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .logo-flame{ width:36px; height:36px; flex-shrink:0; }
+  .topbar-right{ gap:8px; flex-shrink:0; }
+  .profile-img{ width:38px; height:38px; }
+  .notif-bell-btn{ width:38px; height:38px; }
   .product-grid{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
   .prod-card{ padding:14px 14px 16px; }
   .prod-name{ font-size:14.5px; }
@@ -1207,48 +1281,6 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   .stat-grid{ grid-template-columns:1fr; }
   .expense-form{ flex-direction:column; align-items:stretch; }
   .expense-field{ min-width:0; }
-}
-
-/* ---------- INSTALL APP BUTTON + iOS INSTRUCTION SHEET ---------- */
-#pwaInstallBtn{
-  position:fixed;
-  right:18px;
-  bottom:calc(18px + env(safe-area-inset-bottom));
-  z-index:500;
-  display:none;
-  align-items:center;
-  gap:8px;
-  border:none;
-  border-radius:999px;
-  padding:13px 20px;
-  background:var(--gold-grad);
-  color:#fff;
-  font-family:'Poppins',sans-serif;
-  font-weight:700;
-  font-size:14px;
-  box-shadow:0 10px 26px rgba(224,82,47,0.4);
-  animation:pwaPulse 2.4s ease-in-out infinite;
-}
-#pwaInstallBtn.show{ display:inline-flex; }
-@keyframes pwaPulse{
-  0%,100%{ box-shadow:0 10px 26px rgba(224,82,47,0.4); }
-  50%{ box-shadow:0 10px 26px rgba(224,82,47,0.7); }
-}
-#pwaIosSheet{
-  position:fixed; inset:0; background:rgba(20,15,10,0.55);
-  display:none; align-items:flex-end; justify-content:center; z-index:600;
-}
-#pwaIosSheet.show{ display:flex; }
-.pwa-ios-card{
-  background:#fff; width:100%; max-width:460px; border-radius:20px 20px 0 0;
-  padding:24px 24px calc(24px + env(safe-area-inset-bottom));
-  font-family:'Inter',sans-serif; color:var(--ink);
-}
-.pwa-ios-card h3{ font-family:'Poppins',sans-serif; margin:0 0 12px; font-size:18px; }
-.pwa-ios-card ol{ margin:0 0 18px; padding-left:20px; font-size:14px; line-height:1.8; color:#444; }
-.pwa-ios-card button{
-  width:100%; padding:14px; border:none; border-radius:12px;
-  background:var(--gold-grad); color:#fff; font-weight:800; font-size:15px;
 }
 
 </style>
@@ -1318,9 +1350,12 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
           <div class="brand-sub" id="salesmanSubtitle">Salesman POS · Salesman</div>
         </div>
       </div>
+      <button class="mobile-menu-btn" id="salesmanMenuBtn" onclick="toggleMobileActionsMenu(event)" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
       <div class="topbar-right">
 
-    <div class="nav-icons">
+    <div class="nav-icons" id="salesmanNavIcons">
         <button class="nav-icon-btn active" id="navAddSaleBtn" onclick="showSaleSection()">
             <span class="nicon">🛒</span>
             <span class="nlabel">Add Sale</span>
@@ -1366,6 +1401,15 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
     </div>
 
 </div>
+    </div>
+
+    <div class="mobile-actions-dropdown" id="mobileActionsDropdown">
+      <button class="mobile-actions-item active" id="mobileNavAddSaleBtn" onclick="showSaleSection(); closeMobileActionsMenu();">
+        <span class="nicon">🛒</span><span>Add Sale</span>
+      </button>
+      <button class="mobile-actions-item" id="mobileNavAddExpenseBtn" onclick="openExpenseModal(); closeMobileActionsMenu();">
+        <span class="nicon">🧾</span><span>Add Expense</span>
+      </button>
     </div>
 
     <div class="pos-wrap" id="saleSectionWrap">
@@ -1495,7 +1539,8 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
 <div id="ownerScreen" class="hidden">
   <div id="appScreenOwner">
   <div class="admin-layout">
-    <aside class="admin-sidebar">
+    <div class="admin-overlay" id="adminOverlay" onclick="closeAdminSidebar()"></div>
+    <aside class="admin-sidebar" id="adminSidebar">
       <div class="sidebar-brand">
         <div class="logo-flame"><img class="shop-logo-img" alt="Alhamd Fast-Food Logo"></div>
         <div class="sidebar-brand-text">Alhamd Fast-Food<span class="sb-sub">Admin Panel</span></div>
@@ -1512,6 +1557,10 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
     </aside>
     <div class="admin-main">
     <div class="topbar">
+
+    <button class="mobile-menu-btn" id="adminMenuBtn" onclick="toggleAdminSidebar()" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
 
     <div class="brandmark">
         <div>
@@ -4711,63 +4760,69 @@ function toggleOrderType() {
 }
 </script>
 
-<!-- ============ INSTALL AS APP ============ -->
-<button id="pwaInstallBtn" onclick="handlePwaInstallClick()">
-  <span>📲</span><span>Install App</span>
-</button>
-
-<div id="pwaIosSheet">
-  <div class="pwa-ios-card">
-    <h3>Install Alhamd POS on your iPhone</h3>
-    <ol>
-      <li>Tap the <b>Share</b> icon in Safari's toolbar (the square with an arrow).</li>
-      <li>Scroll down and tap <b>"Add to Home Screen"</b>.</li>
-      <li>Tap <b>Add</b> — the app icon will appear on your home screen and open full-screen like a real app.</li>
-    </ol>
-    <button onclick="document.getElementById('pwaIosSheet').classList.remove('show')">Got it</button>
-  </div>
-</div>
-
 <script>
 (function () {
-  var installBtn = document.getElementById('pwaInstallBtn');
-  var iosSheet = document.getElementById('pwaIosSheet');
-  var deferredPrompt = null;
+  /* ---------- Mobile hamburger menu: Salesman (Add Sale / Add Expense) ---------- */
+  var mobileActionsDropdown = document.getElementById('mobileActionsDropdown');
+  var salesmanMenuBtn = document.getElementById('salesmanMenuBtn');
 
-  function isStandalone() {
-    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  }
-  function isIos() {
-    return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-  }
-
-  if (!isStandalone()) {
-    if (isIos()) {
-      installBtn.classList.add('show');
-    }
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.classList.add('show');
-    });
-    window.addEventListener('appinstalled', function () {
-      installBtn.classList.remove('show');
-      deferredPrompt = null;
-    });
-  }
-
-  window.handlePwaInstallClick = function () {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.finally(function () {
-        deferredPrompt = null;
-        installBtn.classList.remove('show');
-      });
-    } else if (isIos()) {
-      iosSheet.classList.add('show');
-    }
+  window.toggleMobileActionsMenu = function (e) {
+    if (e) e.stopPropagation();
+    var isOpen = mobileActionsDropdown.classList.toggle('show');
+    if (salesmanMenuBtn) salesmanMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   };
+  window.closeMobileActionsMenu = function () {
+    mobileActionsDropdown.classList.remove('show');
+    if (salesmanMenuBtn) salesmanMenuBtn.setAttribute('aria-expanded', 'false');
+  };
+  document.addEventListener('click', function (e) {
+    if (mobileActionsDropdown && mobileActionsDropdown.classList.contains('show')) {
+      if (!e.target.closest('#mobileActionsDropdown') && !e.target.closest('#salesmanMenuBtn')) {
+        closeMobileActionsMenu();
+      }
+    }
+  });
+  // Keep the dropdown's active-state in sync with the real nav buttons
+  var origShowSale = window.showSaleSection;
+  var origOpenExpense = window.openExpenseModal;
+  function syncMobileNavActive(activeId) {
+    var sale = document.getElementById('mobileNavAddSaleBtn');
+    var exp = document.getElementById('mobileNavAddExpenseBtn');
+    if (sale) sale.classList.toggle('active', activeId === 'sale');
+    if (exp) exp.classList.toggle('active', activeId === 'expense');
+  }
+  if (typeof origShowSale === 'function') {
+    window.showSaleSection = function () { syncMobileNavActive('sale'); return origShowSale.apply(this, arguments); };
+  }
+  if (typeof origOpenExpense === 'function') {
+    window.openExpenseModal = function () { syncMobileNavActive('expense'); return origOpenExpense.apply(this, arguments); };
+  }
 
+  /* ---------- Mobile hamburger menu: Owner sidebar drawer ---------- */
+  var adminSidebar = document.getElementById('adminSidebar');
+  var adminOverlay = document.getElementById('adminOverlay');
+  var adminMenuBtn = document.getElementById('adminMenuBtn');
+
+  window.toggleAdminSidebar = function () {
+    var isOpen = adminSidebar.classList.toggle('open');
+    adminOverlay.classList.toggle('show', isOpen);
+    if (adminMenuBtn) adminMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  };
+  window.closeAdminSidebar = function () {
+    adminSidebar.classList.remove('open');
+    adminOverlay.classList.remove('show');
+    if (adminMenuBtn) adminMenuBtn.setAttribute('aria-expanded', 'false');
+  };
+  document.querySelectorAll('.admin-nav-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (window.innerWidth <= 900) closeAdminSidebar();
+    });
+  });
+
+  /* ---------- Service worker registration ----------
+     No custom install button — once this is registered alongside the
+     embedded manifest, Chrome/Edge show their own native "Install app"
+     entry in the address bar and the browser menu automatically. */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       try {
