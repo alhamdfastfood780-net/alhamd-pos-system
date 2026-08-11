@@ -3156,11 +3156,56 @@ function loadAllProducts(){
 function pmHandleImageUpload(input){
   const file = input.files && input.files[0];
   if(!file) return;
+  const msgEl = document.getElementById('pmFormMsg');
+
+  if(!file.type || !file.type.startsWith('image/')){
+    if(msgEl){ msgEl.textContent = "Please choose an image file."; msgEl.style.color = "var(--ember)"; }
+    input.value = "";
+    return;
+  }
+  if(msgEl){ msgEl.textContent = "Processing image..."; msgEl.style.color = "#8a8a8a"; }
+
   const reader = new FileReader();
   reader.onload = function(e){
-    pmCurrentImage = e.target.result;
-    document.getElementById('pmProductImageUrl').value = "";
-    pmRenderImagePreview();
+    const img = new Image();
+    img.onload = function(){
+      // Resize/compress so any phone/gallery photo (even several MB) stores
+      // as a small, safe base64 string instead of silently failing to save.
+      const MAX_DIM = 800;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if(w > MAX_DIM || h > MAX_DIM){
+        if(w >= h){ h = Math.round(h * (MAX_DIM / w)); w = MAX_DIM; }
+        else { w = Math.round(w * (MAX_DIM / h)); h = MAX_DIM; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      let quality = 0.8;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      // Keep shrinking quality until it's comfortably under Firestore's
+      // 1MB document limit (we're storing this alongside other products).
+      while(dataUrl.length > 350000 && quality > 0.3){
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+
+      pmCurrentImage = dataUrl;
+      document.getElementById('pmProductImageUrl').value = "";
+      if(msgEl){ msgEl.textContent = "Image ready ✓"; msgEl.style.color = "#1fae72"; }
+      pmRenderImagePreview();
+    };
+    img.onerror = function(){
+      if(msgEl){ msgEl.textContent = "Couldn't read that image. Try a different photo."; msgEl.style.color = "var(--ember)"; }
+      input.value = "";
+    };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){
+    if(msgEl){ msgEl.textContent = "Couldn't read that file from your device. Try again."; msgEl.style.color = "var(--ember)"; }
+    input.value = "";
   };
   reader.readAsDataURL(file);
 }
