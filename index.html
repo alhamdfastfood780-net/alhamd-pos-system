@@ -4873,49 +4873,56 @@ function toggleOrderType() {
   /* ---------- Service worker registration ----------
      No custom install button — once this is registered alongside the
      embedded manifest, Chrome/Edge show their own native "Install app"
-     entry in the address bar and the browser menu automatically. */
+     entry in the address bar and the browser menu automatically.
+     IMPORTANT: this must point to a real .js file on the server — a
+     blob: URL service worker is rejected by browsers and silently
+     fails, which is why installability was broken before. */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      try {
-        var swSource = [
-          'const CACHE_NAME = "alhamd-pos-v1";',
-          'self.addEventListener("install", function (event) {',
-          '  self.skipWaiting();',
-          '  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) { return cache.add(self.registration.scope).catch(function(){}); }));',
-          '});',
-          'self.addEventListener("activate", function (event) {',
-          '  event.waitUntil(caches.keys().then(function (keys) {',
-          '    return Promise.all(keys.filter(function (k) { return k !== CACHE_NAME; }).map(function (k) { return caches.delete(k); }));',
-          '  }));',
-          '  self.clients.claim();',
-          '});',
-          'self.addEventListener("fetch", function (event) {',
-          '  if (event.request.method !== "GET") return;',
-          '  event.respondWith(',
-          '    caches.match(event.request).then(function (cached) {',
-          '      const networkFetch = fetch(event.request).then(function (response) {',
-          '        if (response && response.status === 200 && response.type === "basic") {',
-          '          const clone = response.clone();',
-          '          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });',
-          '        }',
-          '        return response;',
-          '      }).catch(function () { return cached; });',
-          '      return cached || networkFetch;',
-          '    })',
-          '  );',
-          '});'
-        ].join('\n');
-        var swBlob = new Blob([swSource], { type: 'application/javascript' });
-        var swUrl = URL.createObjectURL(swBlob);
-        navigator.serviceWorker.register(swUrl, { scope: './' }).catch(function (err) {
-          console.warn('Service worker registration failed:', err);
-        });
-      } catch (err) {
-        console.warn('Service worker setup skipped:', err);
-      }
+      navigator.serviceWorker.register('js/sw.js', { scope: './' }).catch(function (err) {
+        console.warn('Service worker registration failed:', err);
+      });
     });
   }
 })();
+const CACHE_NAME = "alhamd-pos-v1";
+
+self.addEventListener("install", function (event) {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function (cache) {
+      return cache.add(self.registration.scope).catch(function () {});
+    })
+  );
+});
+
+self.addEventListener("activate", function (event) {
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys.filter(function (k) { return k !== CACHE_NAME; })
+            .map(function (k) { return caches.delete(k); })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", function (event) {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    caches.match(event.request).then(function (cached) {
+      const networkFetch = fetch(event.request).then(function (response) {
+        if (response && response.status === 200 && response.type === "basic") {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
+        }
+        return response;
+      }).catch(function () { return cached; });
+      return cached || networkFetch;
+    })
+  );
+});
 </script>
 </body>
 </html>
