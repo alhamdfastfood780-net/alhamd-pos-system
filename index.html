@@ -219,6 +219,31 @@
     .login-left{display:none;}
   }
 
+  /* ---------- DEV CREDIT (bottom-left) ---------- */
+  .dev-credit{
+    position:absolute; left:6vw; bottom:26px; z-index:3;
+    display:flex; align-items:center; gap:8px;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:500;
+    color:rgba(255,255,255,0.5); letter-spacing:.02em;
+    opacity:0; animation:fadeSlideUp .7s ease forwards; animation-delay:.8s;
+  }
+  .dev-credit .dev-spark{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 8px rgba(245,166,35,0.8);
+    flex-shrink:0;
+  }
+  .dev-credit b{
+    font-family:'Poppins',sans-serif; font-weight:700;
+    background:linear-gradient(90deg,#f7b733,#e0522f,#f7b733);
+    background-size:200% auto;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 5s linear infinite 1.4s;
+  }
+  @media (max-width:880px){
+    .dev-credit{left:50%; transform:translateX(-50%); bottom:16px; font-size:11px;}
+  }
+
   /* ---------- APP SHELL ---------- */
   #appScreen{min-height:100vh;background:#f4f5f7;}
   .topbar{
@@ -1346,6 +1371,8 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
     <button class="signin-btn" id="signInBtn" onclick="handleLogin()">Sign in as Salesman</button>
     <div class="login-error" id="loginError"></div>
   </div>
+
+  <div class="dev-credit"><span class="dev-spark"></span>Designed &amp; Developed by <b>Zaid Ali</b></div>
 </div>
 
 <!-- ============ SALESMAN POS SCREEN ============ -->
@@ -1938,6 +1965,12 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
       </div>
 
       <div class="panel">
+        <h3>👥 Admin Users</h3>
+        <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Everyone with admin access to this panel.</p>
+        <div id="adminUsersList"></div>
+      </div>
+
+      <div class="panel">
         <h3>🔐 Login Settings</h3>
         <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Change the username/password used to sign in. Whoever signs in after saving must use the new details.</p>
 
@@ -1973,6 +2006,10 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
               <input type="text" id="credOwnerName" placeholder="e.g. Choudhary Zain">
             </div>
             <div class="expense-field">
+              <label for="credOwnerRole">Role Shown in Profile</label>
+              <input type="text" id="credOwnerRole" placeholder="e.g. Owner or Developer">
+            </div>
+            <div class="expense-field">
               <label for="credOwnerUsername">Username</label>
               <input type="text" id="credOwnerUsername" placeholder="owner">
             </div>
@@ -1987,6 +2024,31 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
             <button class="add-expense-btn" onclick="updateOwnerCredentials()">Save</button>
           </div>
           <p id="credOwnerMsg" style="font-size:13px;margin:6px 0 0;"></p>
+        </div>
+
+        <div id="adminLoginSettingsBlock" class="hidden" style="margin-top:22px;">
+          <div style="font-weight:700;margin-bottom:10px;">🛠️ Admin Login Settings</div>
+          <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 12px;">Only you (the Admin) can see or change this — the Owner cannot view or edit it.</p>
+          <div class="expense-form">
+            <div class="expense-field">
+              <label for="credAdminName">Admin Display Name</label>
+              <input type="text" id="credAdminName" placeholder="e.g. Zaid Ali">
+            </div>
+            <div class="expense-field">
+              <label for="credAdminUsername">Username</label>
+              <input type="text" id="credAdminUsername" placeholder="admin">
+            </div>
+            <div class="expense-field">
+              <label for="credAdminPassword">Password</label>
+              <input type="text" id="credAdminPassword" placeholder="admin123">
+            </div>
+            <div class="expense-field">
+              <label for="credAdminPhoto">Profile Picture URL</label>
+              <input type="text" id="credAdminPhoto" placeholder="https://example.com/photo.jpg">
+            </div>
+            <button class="add-expense-btn" onclick="updateAdminCredentials()">Save</button>
+          </div>
+          <p id="credAdminMsg" style="font-size:13px;margin:6px 0 0;"></p>
         </div>
       </div>
       </div>
@@ -2529,16 +2591,42 @@ settingsDocRef.onSnapshot((doc) => {
   if (d.ownerPhoto) OWNER_ACCOUNT.photo = d.ownerPhoto;
   if (d.ownerName) {
     OWNER_ACCOUNT.name = d.ownerName;
-    if(currentUser && currentUser.role === 'owner'){
+  }
+  if (d.ownerRole) {
+    OWNER_ACCOUNT.role = d.ownerRole;
+  }
+  if (d.adminUsername) SECOND_ADMIN_ACCOUNT.username = d.adminUsername;
+  if (d.adminPassword) SECOND_ADMIN_ACCOUNT.password = d.adminPassword;
+  if (d.adminPhoto) SECOND_ADMIN_ACCOUNT.photo = d.adminPhoto;
+  if (d.adminName) SECOND_ADMIN_ACCOUNT.name = d.adminName;
+  if (d.ownerName || d.ownerRole){
+    if(currentUser && currentUser.role === 'owner' && currentOwnerAccountRef === OWNER_ACCOUNT){
       currentUser.name = OWNER_ACCOUNT.name;
       const ownerProfileNameEl = document.getElementById('ownerProfileName');
       if(ownerProfileNameEl) ownerProfileNameEl.textContent = OWNER_ACCOUNT.name;
+      const ownerProfileRoleEl = document.getElementById('ownerProfileRole');
+      if(ownerProfileRoleEl) ownerProfileRoleEl.textContent = OWNER_ACCOUNT.role || 'Owner';
       const ownerSubtitleEl = document.getElementById('ownerSubtitle');
-      if(ownerSubtitleEl) ownerSubtitleEl.textContent = "Owner Dashboard · " + OWNER_ACCOUNT.name;
+      if(ownerSubtitleEl) ownerSubtitleEl.textContent = (OWNER_ACCOUNT.role || "Owner") + " Dashboard · " + OWNER_ACCOUNT.name;
     }
+    renderAdminUsersList();
+  }
+  if (d.adminName){
+    if(currentUser && currentUser.role === 'owner' && currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT){
+      currentUser.name = SECOND_ADMIN_ACCOUNT.name;
+      const ownerProfileNameEl = document.getElementById('ownerProfileName');
+      if(ownerProfileNameEl) ownerProfileNameEl.textContent = SECOND_ADMIN_ACCOUNT.name;
+      const ownerSubtitleEl = document.getElementById('ownerSubtitle');
+      if(ownerSubtitleEl) ownerSubtitleEl.textContent = SECOND_ADMIN_ACCOUNT.role + " Dashboard · " + SECOND_ADMIN_ACCOUNT.name;
+    }
+    renderAdminUsersList();
   }
   document.querySelectorAll('#salesmanProfileImgBtn, #salesmanProfileImgLarge').forEach(function(img){ if(SALESMEN[0].photo) img.src = SALESMEN[0].photo; });
-  document.querySelectorAll('#ownerProfileImgBtn, #ownerProfileImgLarge').forEach(function(img){ if(OWNER_ACCOUNT.photo) img.src = OWNER_ACCOUNT.photo; });
+  if(currentOwnerAccountRef === OWNER_ACCOUNT){
+    document.querySelectorAll('#ownerProfileImgBtn, #ownerProfileImgLarge').forEach(function(img){ if(OWNER_ACCOUNT.photo) img.src = OWNER_ACCOUNT.photo; });
+  } else if(currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT){
+    document.querySelectorAll('#ownerProfileImgBtn, #ownerProfileImgLarge').forEach(function(img){ if(SECOND_ADMIN_ACCOUNT.photo) img.src = SECOND_ADMIN_ACCOUNT.photo; });
+  }
 
   FIRESTORE_USAGE_ESTIMATE.settingsBytes = estimateBytes(d);
   notifyStorageUsageChanged();
@@ -2882,7 +2970,41 @@ function togglePasswordVisibility(){
 const SALESMEN = [
   { username: "salesman", password: "sales123", photo: "https://i.imgur.com/2DhmtJ4.png" }
 ];
-const OWNER_ACCOUNT = { username: "owner", password: "owner123", name: "Choudhary ZAIN", photo: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg" };
+const OWNER_ACCOUNT = { username: "owner", password: "owner123", name: "Choudhary ZAIN", role: "Owner", photo: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg" };
+
+/* Second admin — a real, separate login that lands on the same Owner
+   dashboard, with its own "Admin" role. The Admin can change his own
+   username/password/name/photo from Settings ▸ Admin Login Settings —
+   but that block only ever renders when the Admin himself is signed
+   in; the Owner never sees or can edit these credentials. */
+const SECOND_ADMIN_ACCOUNT = { username: "zaid", password: "zaid123", name: "Zaid Ali", role: "Admin", photo: "" };
+
+/* Which admin account is currently signed in — OWNER_ACCOUNT or
+   SECOND_ADMIN_ACCOUNT — so credential edits only ever affect the
+   account that's actually logged in, and so the Admin Login Settings
+   block only shows for the Admin, never the Owner. */
+let currentOwnerAccountRef = null;
+
+/* Renders the Admin Users list in Settings: the primary owner login
+   (kept live from OWNER_ACCOUNT, editable via the form below it)
+   plus the second admin — a real login of its own, shown here for
+   reference only. The Owner can see his name/role but never his
+   username, password, or photo. */
+function renderAdminUsersList(){
+  const el = document.getElementById('adminUsersList');
+  if(!el) return;
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid #eee;border-radius:12px;margin-bottom:10px;">' +
+      '<div><div style="font-weight:700;">' + (OWNER_ACCOUNT.name || 'Owner') + '</div>' +
+      '<div style="color:#8a8a8a;font-size:13px;">' + (OWNER_ACCOUNT.role || 'Owner') + '</div></div>' +
+      '<span style="font-size:12px;color:#1fae72;font-weight:600;">Editable below</span>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid #eee;border-radius:12px;background:#fafafa;">' +
+      '<div><div style="font-weight:700;">' + SECOND_ADMIN_ACCOUNT.name + '</div>' +
+      '<div style="color:#8a8a8a;font-size:13px;">' + SECOND_ADMIN_ACCOUNT.role + '</div></div>' +
+      '<span style="font-size:12px;color:#8a8a8a;font-weight:600;">🔒 Separate login — credentials hidden from Admin</span>' +
+    '</div>';
+}
 const SALESMAN_NAME_KEY = "alhamd_salesman_last_name";
 const CREDENTIALS_KEY = "alhamd_login_credentials";
 
@@ -2903,6 +3025,13 @@ function loadCredentials(){
       if(saved.owner.password) OWNER_ACCOUNT.password = saved.owner.password;
       if(saved.owner.photo) OWNER_ACCOUNT.photo = saved.owner.photo;
       if(saved.owner.name) OWNER_ACCOUNT.name = saved.owner.name;
+      if(saved.owner.role) OWNER_ACCOUNT.role = saved.owner.role;
+    }
+    if(saved.admin){
+      if(saved.admin.username) SECOND_ADMIN_ACCOUNT.username = saved.admin.username;
+      if(saved.admin.password) SECOND_ADMIN_ACCOUNT.password = saved.admin.password;
+      if(saved.admin.photo) SECOND_ADMIN_ACCOUNT.photo = saved.admin.photo;
+      if(saved.admin.name) SECOND_ADMIN_ACCOUNT.name = saved.admin.name;
     }
   }catch(e){ /* ignore corrupt storage */ }
 }
@@ -2914,6 +3043,7 @@ function renderCredentialsManager(){
   const sp = document.getElementById('credSalesmanPassword');
   const sph = document.getElementById('credSalesmanPhoto');
   const on = document.getElementById('credOwnerName');
+  const or_ = document.getElementById('credOwnerRole');
   const ou = document.getElementById('credOwnerUsername');
   const op = document.getElementById('credOwnerPassword');
   const oph = document.getElementById('credOwnerPhoto');
@@ -2922,6 +3052,7 @@ function renderCredentialsManager(){
   if(sp) sp.value = SALESMEN[0].password;
   if(sph) sph.value = SALESMEN[0].photo || '';
   if(on) on.value = OWNER_ACCOUNT.name || '';
+  if(or_) or_.value = OWNER_ACCOUNT.role || 'Owner';
   if(ou) ou.value = OWNER_ACCOUNT.username;
   if(op) op.value = OWNER_ACCOUNT.password;
   if(oph) oph.value = OWNER_ACCOUNT.photo || '';
@@ -2929,6 +3060,68 @@ function renderCredentialsManager(){
   const oMsg = document.getElementById('credOwnerMsg');
   if(sMsg) sMsg.textContent = '';
   if(oMsg) oMsg.textContent = '';
+
+  /* Admin Login Settings only ever render for the Admin himself —
+     the Owner never sees this block or the Admin's credentials. */
+  const adminBlock = document.getElementById('adminLoginSettingsBlock');
+  if(adminBlock){
+    if(currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT){
+      adminBlock.classList.remove('hidden');
+      const an = document.getElementById('credAdminName');
+      const au = document.getElementById('credAdminUsername');
+      const ap = document.getElementById('credAdminPassword');
+      const aph = document.getElementById('credAdminPhoto');
+      if(an) an.value = SECOND_ADMIN_ACCOUNT.name || '';
+      if(au) au.value = SECOND_ADMIN_ACCOUNT.username;
+      if(ap) ap.value = SECOND_ADMIN_ACCOUNT.password;
+      if(aph) aph.value = SECOND_ADMIN_ACCOUNT.photo || '';
+      const aMsg = document.getElementById('credAdminMsg');
+      if(aMsg) aMsg.textContent = '';
+    } else {
+      adminBlock.classList.add('hidden');
+    }
+  }
+  renderAdminUsersList();
+}
+
+function updateAdminCredentials(){
+  /* Safety check: this can only ever change SECOND_ADMIN_ACCOUNT, and
+     only while the Admin himself is signed in — the Owner has no path
+     to this function since the block is hidden for him. */
+  if(currentOwnerAccountRef !== SECOND_ADMIN_ACCOUNT) return;
+  const nEl = document.getElementById('credAdminName');
+  const uEl = document.getElementById('credAdminUsername');
+  const pEl = document.getElementById('credAdminPassword');
+  const phEl = document.getElementById('credAdminPhoto');
+  const msgEl = document.getElementById('credAdminMsg');
+  const name = nEl ? nEl.value.trim() : '';
+  const username = uEl.value.trim();
+  const password = pEl.value.trim();
+  const photo = phEl ? phEl.value.trim() : '';
+  if(!username || !password){
+    if(msgEl){ msgEl.textContent = 'Username and password cannot be empty.'; msgEl.style.color = 'var(--ember)'; }
+    return;
+  }
+  if(name) SECOND_ADMIN_ACCOUNT.name = name;
+  SECOND_ADMIN_ACCOUNT.username = username;
+  SECOND_ADMIN_ACCOUNT.password = password;
+  if(photo) SECOND_ADMIN_ACCOUNT.photo = photo;
+  if(currentUser && currentUser.role === 'owner' && currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT){
+    currentUser.name = SECOND_ADMIN_ACCOUNT.name;
+    const ownerProfileNameEl = document.getElementById('ownerProfileName');
+    if(ownerProfileNameEl) ownerProfileNameEl.textContent = SECOND_ADMIN_ACCOUNT.name;
+    const ownerProfileRoleEl = document.getElementById('ownerProfileRole');
+    if(ownerProfileRoleEl) ownerProfileRoleEl.textContent = SECOND_ADMIN_ACCOUNT.role;
+    const ownerSubtitleEl = document.getElementById('ownerSubtitle');
+    if(ownerSubtitleEl) ownerSubtitleEl.textContent = SECOND_ADMIN_ACCOUNT.role + " Dashboard · " + SECOND_ADMIN_ACCOUNT.name;
+    const btnImg = document.getElementById('ownerProfileImgBtn');
+    const largeImg = document.getElementById('ownerProfileImgLarge');
+    if(btnImg && SECOND_ADMIN_ACCOUNT.photo) btnImg.src = SECOND_ADMIN_ACCOUNT.photo;
+    if(largeImg && SECOND_ADMIN_ACCOUNT.photo) largeImg.src = SECOND_ADMIN_ACCOUNT.photo;
+  }
+  saveCredentials();
+  renderAdminUsersList();
+  if(msgEl){ msgEl.textContent = 'Admin login updated ✓ (use it next time you sign in)'; msgEl.style.color = '#1fae72'; }
 }
 
 function updateSalesmanCredentials(){
@@ -2968,11 +3161,13 @@ function updateSalesmanCredentials(){
 
 function updateOwnerCredentials(){
   const nEl = document.getElementById('credOwnerName');
+  const rEl = document.getElementById('credOwnerRole');
   const uEl = document.getElementById('credOwnerUsername');
   const pEl = document.getElementById('credOwnerPassword');
   const phEl = document.getElementById('credOwnerPhoto');
   const msgEl = document.getElementById('credOwnerMsg');
   const name = nEl ? nEl.value.trim() : '';
+  const role = rEl ? rEl.value.trim() : '';
   const username = uEl.value.trim();
   const password = pEl.value.trim();
   const photo = phEl ? phEl.value.trim() : '';
@@ -2981,21 +3176,25 @@ function updateOwnerCredentials(){
     return;
   }
   if(name) OWNER_ACCOUNT.name = name;
+  OWNER_ACCOUNT.role = role || 'Owner';
   OWNER_ACCOUNT.username = username;
   OWNER_ACCOUNT.password = password;
   if(photo) OWNER_ACCOUNT.photo = photo;
-  if(currentUser && currentUser.role === 'owner'){
+  if(currentUser && currentUser.role === 'owner' && currentOwnerAccountRef === OWNER_ACCOUNT){
     currentUser.name = OWNER_ACCOUNT.name;
     const ownerProfileNameEl = document.getElementById('ownerProfileName');
     if(ownerProfileNameEl) ownerProfileNameEl.textContent = OWNER_ACCOUNT.name;
+    const ownerProfileRoleEl = document.getElementById('ownerProfileRole');
+    if(ownerProfileRoleEl) ownerProfileRoleEl.textContent = OWNER_ACCOUNT.role;
     const ownerSubtitleEl = document.getElementById('ownerSubtitle');
-    if(ownerSubtitleEl) ownerSubtitleEl.textContent = "Owner Dashboard · " + OWNER_ACCOUNT.name;
+    if(ownerSubtitleEl) ownerSubtitleEl.textContent = OWNER_ACCOUNT.role + " Dashboard · " + OWNER_ACCOUNT.name;
+    const btnImg = document.getElementById('ownerProfileImgBtn');
+    const largeImg = document.getElementById('ownerProfileImgLarge');
+    if(btnImg && OWNER_ACCOUNT.photo) btnImg.src = OWNER_ACCOUNT.photo;
+    if(largeImg && OWNER_ACCOUNT.photo) largeImg.src = OWNER_ACCOUNT.photo;
   }
-  const btnImg = document.getElementById('ownerProfileImgBtn');
-  const largeImg = document.getElementById('ownerProfileImgLarge');
-  if(btnImg && OWNER_ACCOUNT.photo) btnImg.src = OWNER_ACCOUNT.photo;
-  if(largeImg && OWNER_ACCOUNT.photo) largeImg.src = OWNER_ACCOUNT.photo;
   saveCredentials();
+  renderAdminUsersList();
   if(msgEl){ msgEl.textContent = 'Admin login updated ✓ (use it next time you sign in)'; msgEl.style.color = '#1fae72'; }
 }
 
@@ -3055,23 +3254,33 @@ document.getElementById("profileRole").textContent = "Salesman";
     renderBill();
     renderExpensesSalesman();
   } else {
-    if(username !== OWNER_ACCOUNT.username || pass !== OWNER_ACCOUNT.password){
+    let matchedAccount = null;
+    if(username === OWNER_ACCOUNT.username && pass === OWNER_ACCOUNT.password){
+      matchedAccount = OWNER_ACCOUNT;
+    } else if(username === SECOND_ADMIN_ACCOUNT.username && pass === SECOND_ADMIN_ACCOUNT.password){
+      matchedAccount = SECOND_ADMIN_ACCOUNT;
+    }
+    if(!matchedAccount){
       errEl.textContent = "Invalid username or password.";
       return;
     }
     errEl.textContent = "";
-    currentUser = {name: OWNER_ACCOUNT.name, username: OWNER_ACCOUNT.username, role:"owner"};
-   document.getElementById("ownerProfileName").textContent = OWNER_ACCOUNT.name;
-document.getElementById("ownerProfileRole").textContent = "Owner";
-    if(OWNER_ACCOUNT.photo){
-      const btnImg = document.getElementById('ownerProfileImgBtn');
-      const largeImg = document.getElementById('ownerProfileImgLarge');
-      if(btnImg) btnImg.src = OWNER_ACCOUNT.photo;
-      if(largeImg) largeImg.src = OWNER_ACCOUNT.photo;
+    currentOwnerAccountRef = matchedAccount;
+    currentUser = {name: matchedAccount.name, username: matchedAccount.username, role:"owner"};
+   document.getElementById("ownerProfileName").textContent = matchedAccount.name;
+document.getElementById("ownerProfileRole").textContent = matchedAccount.role || "Owner";
+    const btnImg = document.getElementById('ownerProfileImgBtn');
+    const largeImg = document.getElementById('ownerProfileImgLarge');
+    if(matchedAccount.photo){
+      if(btnImg) btnImg.src = matchedAccount.photo;
+      if(largeImg) largeImg.src = matchedAccount.photo;
+    } else {
+      if(btnImg) btnImg.src = "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg";
+      if(largeImg) largeImg.src = "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg";
     }
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('ownerScreen').classList.remove('hidden');
-    document.getElementById('ownerSubtitle').textContent = "Owner Dashboard · " + OWNER_ACCOUNT.name;
+    document.getElementById('ownerSubtitle').textContent = (matchedAccount.role || "Owner") + " Dashboard · " + matchedAccount.name;
     showAdminSection('dashboard');
     pmRefreshCategorySelect();
 pmRenderCategoryManager();
@@ -3122,7 +3331,8 @@ function saveCredentials(){
   try{
     localStorage.setItem(CREDENTIALS_KEY, JSON.stringify({
       salesman: { username: SALESMEN[0].username, password: SALESMEN[0].password, photo: SALESMEN[0].photo },
-      owner: { username: OWNER_ACCOUNT.username, password: OWNER_ACCOUNT.password, photo: OWNER_ACCOUNT.photo, name: OWNER_ACCOUNT.name }
+      owner: { username: OWNER_ACCOUNT.username, password: OWNER_ACCOUNT.password, photo: OWNER_ACCOUNT.photo, name: OWNER_ACCOUNT.name, role: OWNER_ACCOUNT.role },
+      admin: { username: SECOND_ADMIN_ACCOUNT.username, password: SECOND_ADMIN_ACCOUNT.password, photo: SECOND_ADMIN_ACCOUNT.photo, name: SECOND_ADMIN_ACCOUNT.name }
     }));
   }catch(e){}
   pushSettingsToCloud({
@@ -3133,7 +3343,12 @@ function saveCredentials(){
     ownerUsername: OWNER_ACCOUNT.username,
     ownerPassword: OWNER_ACCOUNT.password,
     ownerPhoto: OWNER_ACCOUNT.photo,
-    ownerName: OWNER_ACCOUNT.name
+    ownerName: OWNER_ACCOUNT.name,
+    ownerRole: OWNER_ACCOUNT.role,
+    adminUsername: SECOND_ADMIN_ACCOUNT.username,
+    adminPassword: SECOND_ADMIN_ACCOUNT.password,
+    adminPhoto: SECOND_ADMIN_ACCOUNT.photo,
+    adminName: SECOND_ADMIN_ACCOUNT.name
   }); // NEW
 }
 
@@ -3486,9 +3701,11 @@ function showAdminSection(name){
   const titleEl = document.getElementById('adminSectionTitle');
   if(titleEl) titleEl.textContent = target.title;
   if(name === 'unpaid') renderUnpaidBills();
+  if(name === 'settings') renderCredentialsManager();
 }
 function logout(){
   currentUser = null;
+  currentOwnerAccountRef = null;
   bill = [];
   document.getElementById('salesmanScreen').classList.add('hidden');
   document.getElementById('ownerScreen').classList.add('hidden');
@@ -4918,4 +5135,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html>
+</html> 
