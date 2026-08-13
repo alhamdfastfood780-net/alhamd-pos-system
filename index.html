@@ -2134,6 +2134,20 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
         <input type="text" id="editBillItemSearch" placeholder="Search a product to add..." oninput="editBillSearchProducts()">
         <div id="editBillItemResults" class="ebc-item-results hidden"></div>
       </div>
+
+      <div class="delivery-row" id="editBillOrderTypeRow">
+        <div class="delivery-label" style="margin-bottom:8px;">🍽️ Order Type</div>
+        <div class="cat-row" style="margin:0;">
+          <button type="button" class="cat-pill" id="editBillTypeDineIn" onclick="editBillSetOrderType('Dine In')">🍽️ Dine In</button>
+          <button type="button" class="cat-pill" id="editBillTypeTakeAway" onclick="editBillSetOrderType('Take Away')">🥡 Take Away</button>
+          <button type="button" class="cat-pill" id="editBillTypeDelivery" onclick="editBillSetOrderType('Delivery')">🚴 Delivery</button>
+        </div>
+        <div class="salesman-name-row hidden" id="editBillCustomerNumberBox" style="margin-top:10px;">
+          <label for="editBillCustomerNumber">Customer Number</label>
+          <input type="text" id="editBillCustomerNumber" class="salesman-name-input" placeholder="03XXXXXXXXXX" oninput="editBillRecalc()">
+        </div>
+      </div>
+
       <div id="editBillItemsWrap"></div>
 
       <div class="delivery-row" id="editBillDeliveryRow">
@@ -4052,7 +4066,9 @@ function openEditBillModal(billNo){
     billNo: sale.billNo,
     items: sale.items.map(i => ({...i})),
     paymentMethod: sale.paymentMethod || 'cash',
-    paymentStatus: sale.paymentStatus || 'paid'
+    paymentStatus: sale.paymentStatus || 'paid',
+    orderType: sale.orderType || 'Dine In',
+    customerNumber: sale.customerNumber || ''
   };
 
   document.getElementById('editBillNoLabel').textContent = '#' + sale.billNo;
@@ -4060,6 +4076,9 @@ function openEditBillModal(billNo){
   document.getElementById('editBillItemResults').innerHTML = '';
   document.getElementById('editBillItemResults').classList.add('hidden');
   document.getElementById('editBillDeliveryAmountLabel').textContent = deliveryChargeAmount;
+
+  editBillSetOrderType(editingBill.orderType);
+  document.getElementById('editBillCustomerNumber').value = editingBill.customerNumber;
 
   const deliveryToggle = document.getElementById('editBillDeliveryToggle');
   if(deliveryToggle) deliveryToggle.checked = sale.deliveryCharge > 0;
@@ -4172,6 +4191,25 @@ function editBillToggleDiscount(){
   editBillRecalc();
 }
 
+function editBillSetOrderType(type){
+  if(!editingBill) return;
+  editingBill.orderType = type;
+  const dineBtn = document.getElementById('editBillTypeDineIn');
+  const takeBtn = document.getElementById('editBillTypeTakeAway');
+  const delBtn = document.getElementById('editBillTypeDelivery');
+  if(dineBtn) dineBtn.classList.toggle('active', type === 'Dine In');
+  if(takeBtn) takeBtn.classList.toggle('active', type === 'Take Away');
+  if(delBtn) delBtn.classList.toggle('active', type === 'Delivery');
+
+  const custBox = document.getElementById('editBillCustomerNumberBox');
+  if(custBox) custBox.classList.toggle('hidden', type !== 'Delivery');
+  if(type !== 'Delivery'){
+    const custInput = document.getElementById('editBillCustomerNumber');
+    if(custInput) custInput.value = '';
+    editingBill.customerNumber = '';
+  }
+}
+
 function editBillSetPaymentMethod(method){
   if(editingBill) editingBill.paymentMethod = method;
   const cashBtn = document.getElementById('editBillPayCash');
@@ -4190,6 +4228,8 @@ function editBillSetPaymentStatus(status){
 
 function editBillRecalc(){
   if(!editingBill) return;
+  const custInput = document.getElementById('editBillCustomerNumber');
+  if(custInput && editingBill.orderType === 'Delivery') editingBill.customerNumber = custInput.value.trim();
   const subtotal = editingBill.items.reduce((s,i) => s + i.price*i.qty, 0);
   const deliveryToggle = document.getElementById('editBillDeliveryToggle');
   const deliveryCharge = (deliveryToggle && deliveryToggle.checked) ? deliveryChargeAmount : 0;
@@ -4222,7 +4262,9 @@ function saveEditedBill(){
     discount: c.discount,
     total: c.total,
     paymentMethod: editingBill.paymentMethod,
-    paymentStatus: editingBill.paymentStatus
+    paymentStatus: editingBill.paymentStatus,
+    orderType: editingBill.orderType,
+    customerNumber: editingBill.orderType === 'Delivery' ? editingBill.customerNumber : ''
   };
 
   salesCollection.doc(String(sale.billNo)).update(updated)
@@ -5389,4 +5431,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html> 
+</html>
