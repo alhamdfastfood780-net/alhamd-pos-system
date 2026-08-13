@@ -1909,18 +1909,31 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
 
     <div class="da-modal-body">
 
-      <label class="da-label" for="daImageInput">Deal image</label>
-      <label for="daImageInput" class="da-upload" id="daUpload">
-        <img id="daPreviewImg" class="da-preview-img" style="display:none" alt="">
-        <span id="daUploadHint" class="da-upload-hint">
+      <label class="da-label" for="daImageInputDesktop">Desktop image</label>
+      <label for="daImageInputDesktop" class="da-upload" id="daUploadDesktop">
+        <img id="daPreviewImgDesktop" class="da-preview-img" style="display:none" alt="">
+        <span id="daUploadHintDesktop" class="da-upload-hint">
           <span class="da-upload-icon">⬆</span>
-          Tap to upload photo<br><small>Square photos work best</small>
+          Tap to upload photo<br><small>Wide photos work best</small>
         </span>
       </label>
-      <input type="file" id="daImageInput" accept="image/*" hidden>
-      <label class="da-label" for="daImageUrl" style="margin-top:10px;">...or Image URL</label>
-      <input type="text" id="daImageUrl" class="da-input" placeholder="https://...">
-      <p class="da-hint">Use either one — upload a photo, or paste a link to one already hosted online. Whichever you fill in last is the one that's used.</p>
+      <input type="file" id="daImageInputDesktop" accept="image/*" hidden>
+      <label class="da-label" for="daImageUrlDesktop" style="margin-top:10px;">...or Image URL (Desktop)</label>
+      <input type="text" id="daImageUrlDesktop" class="da-input" placeholder="https://...">
+      <p class="da-hint">Shown to visitors on laptop/desktop. Upload a photo or paste a link — whichever you fill in last is used.</p>
+
+      <label class="da-label" for="daImageInputMobile" style="margin-top:18px;">Mobile image</label>
+      <label for="daImageInputMobile" class="da-upload" id="daUploadMobile">
+        <img id="daPreviewImgMobile" class="da-preview-img" style="display:none" alt="">
+        <span id="daUploadHintMobile" class="da-upload-hint">
+          <span class="da-upload-icon">⬆</span>
+          Tap to upload photo<br><small>Square/tall photos work best</small>
+        </span>
+      </label>
+      <input type="file" id="daImageInputMobile" accept="image/*" hidden>
+      <label class="da-label" for="daImageUrlMobile" style="margin-top:10px;">...or Image URL (Mobile)</label>
+      <input type="text" id="daImageUrlMobile" class="da-input" placeholder="https://...">
+      <p class="da-hint">Shown to visitors on phones. Leave empty to reuse the desktop image.</p>
 
       <label class="da-label">Redirect to item <span class="da-optional">(optional)</span></label>
       <div id="daItemPicked" class="da-item-picked" style="display:none">
@@ -3672,7 +3685,8 @@ function pmSaveProduct(){
     return;
   }
 
-  let productData = { name, cat, image };
+  const existingProduct = editingId ? PRODUCTS.find(p => p.id === editingId) : null;
+  let productData = { name, cat, image, active: existingProduct ? (existingProduct.active !== false) : true };
   if(hasVariants){
     const cleanVariants = pmCurrentVariants
       .map(v => ({label:(v.label||'').trim(), price: Math.max(0, Math.round(v.price||0))}))
@@ -3764,7 +3778,7 @@ function renderProductManagerList(){
     wrap.innerHTML = `<div style="color:#999;text-align:center;padding:30px;">No products found.</div>`;
     return;
   }
-  wrap.innerHTML = `<table><thead><tr><th></th><th>Name</th><th>Category</th><th>Price / Variants</th><th></th></tr></thead><tbody>` +
+  wrap.innerHTML = `<table><thead><tr><th></th><th>Name</th><th>Category</th><th>Price / Variants</th><th>Active</th><th></th></tr></thead><tbody>` +
     list.map(p => {
       const priceDisplay = p.variants && p.variants.length
         ? p.variants.map(v => `${v.label}: Rs ${v.price}`).join(' · ')
@@ -3772,17 +3786,33 @@ function renderProductManagerList(){
       const thumb = p.image
         ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;">`
         : `<div style="width:40px;height:40px;border-radius:8px;background:#f2f2f2;"></div>`;
-      return `<tr>
+      const isActive = p.active !== false;
+      return `<tr style="${isActive ? '' : 'opacity:.55;'}">
         <td>${thumb}</td>
-        <td style="font-weight:700;">${p.name}</td>
+        <td style="font-weight:700;">${p.name}${isActive ? '' : ' <span style=\"font-size:11px;font-weight:700;color:#c0392b;\">(Disabled)</span>'}</td>
         <td class="price-row-cat">${p.cat}</td>
         <td style="font-size:13px;">${priceDisplay}</td>
+        <td>
+          <label class="da-switch" title="${isActive ? 'Tap to disable' : 'Tap to enable'}">
+            <input type="checkbox" onchange="pmToggleActive('${p.id}', this.checked)" ${isActive ? 'checked' : ''}>
+            <span class="da-switch-track"></span>
+          </label>
+        </td>
         <td>
           <button class="view-btn" onclick="pmEditProduct('${p.id}')">✏️</button>
           <button class="expense-del-btn" onclick="pmDeleteProduct('${p.id}')">🗑️</button>
         </td>
       </tr>`;
     }).join('') + `</tbody></table>`;
+}
+
+function pmToggleActive(id, checked){
+  const p = PRODUCTS.find(x => x.id === id);
+  if(!p) return;
+  p.active = checked;
+  saveAllProducts();
+  if(document.getElementById('productGrid')) renderProducts();
+  renderProductManagerList();
 }
 /* ================= ADMIN SIDEBAR SECTION SWITCHING (owner panel only) ================= */
 const ADMIN_SECTION_MAP = {
@@ -3842,7 +3872,7 @@ let selectedVariantIdx = {};
 function renderProducts(){
   const q = document.getElementById('searchInput').value.toLowerCase();
   const grid = document.getElementById('productGrid');
-  let list = PRODUCTS.filter(p => (activeCat==='All' || p.cat===activeCat) && p.name.toLowerCase().includes(q));
+  let list = PRODUCTS.filter(p => (activeCat==='All' || p.cat===activeCat) && p.name.toLowerCase().includes(q) && p.active !== false);
   if(list.length===0){
     grid.innerHTML = `<div style="grid-column:1/-1;color:#999;text-align:center;padding:40px;">No items match your search.</div>`;
     return;
@@ -5081,8 +5111,10 @@ NotificationSystem.init();
   let PRODUCTS = [];
   let DEALS = [];
   let editingIndex = null;    // null = creating a new deal
-  let pendingImageData = "";  // newly uploaded photo, converted to a data URL (not saved yet)
-  let pendingImageURL = "";   // existing photo (URL or data URL) when editing, or a pasted URL
+  let pendingImageDataDesktop = "";  // newly uploaded desktop photo, as a data URL (not saved yet)
+  let pendingImageURLDesktop = "";   // existing desktop photo (URL or data URL) when editing
+  let pendingImageDataMobile = "";   // newly uploaded mobile photo, as a data URL (not saved yet)
+  let pendingImageURLMobile = "";    // existing mobile photo (URL or data URL) when editing
   let pickedProduct = null;   // {id, name} or null
 
   const listEl = document.getElementById("daList");
@@ -5093,10 +5125,14 @@ NotificationSystem.init();
   const overlay = document.getElementById("daModalOverlay");
   const modalTitle = document.getElementById("daModalTitle");
   const closeBtn = document.getElementById("daCloseBtn");
-  const imgInput = document.getElementById("daImageInput");
-  const imgUrlInput = document.getElementById("daImageUrl");
-  const previewImg = document.getElementById("daPreviewImg");
-  const uploadHint = document.getElementById("daUploadHint");
+  const imgInputDesktop = document.getElementById("daImageInputDesktop");
+  const imgUrlInputDesktop = document.getElementById("daImageUrlDesktop");
+  const previewImgDesktop = document.getElementById("daPreviewImgDesktop");
+  const uploadHintDesktop = document.getElementById("daUploadHintDesktop");
+  const imgInputMobile = document.getElementById("daImageInputMobile");
+  const imgUrlInputMobile = document.getElementById("daImageUrlMobile");
+  const previewImgMobile = document.getElementById("daPreviewImgMobile");
+  const uploadHintMobile = document.getElementById("daUploadHintMobile");
   const itemSearch = document.getElementById("daItemSearch");
   const itemResults = document.getElementById("daItemResults");
   const itemPicked = document.getElementById("daItemPicked");
@@ -5138,7 +5174,7 @@ NotificationSystem.init();
       const label = linked ? (findProductLabel(d) || "Linked item") : "No item linked";
       return (
         '<div class="da-card">' +
-          '<img class="da-card-thumb" src="' + escapeAttr(d.image || "") + '" alt="">' +
+          '<img class="da-card-thumb" src="' + escapeAttr(d.imageDesktop || d.image || d.imageMobile || "") + '" alt="">' +
           '<div class="da-card-body">' +
             '<div class="da-card-target">' + escapeHtml(label) + '</div>' +
             '<div class="da-card-sub">' + (d.active ? "Live on website" : "Turned off") + '</div>' +
@@ -5173,8 +5209,10 @@ NotificationSystem.init();
   /* ---------------- modal open/close ---------------- */
   function openModal(index) {
     editingIndex = (typeof index === "number") ? index : null;
-    pendingImageData = "";
-    imgInput.value = "";
+    pendingImageDataDesktop = "";
+    pendingImageDataMobile = "";
+    imgInputDesktop.value = "";
+    imgInputMobile.value = "";
     setStatus("", "");
     itemSearch.value = "";
     itemResults.innerHTML = "";
@@ -5182,11 +5220,19 @@ NotificationSystem.init();
     if (editingIndex !== null) {
       const d = DEALS[editingIndex];
       modalTitle.textContent = "Edit Deal";
-      pendingImageURL = d.image || "";
-      imgUrlInput.value = pendingImageURL.indexOf("http") === 0 ? pendingImageURL : "";
-      previewImg.src = pendingImageURL;
-      previewImg.style.display = pendingImageURL ? "block" : "none";
-      uploadHint.style.display = pendingImageURL ? "none" : "flex";
+
+      pendingImageURLDesktop = d.imageDesktop || d.image || "";
+      imgUrlInputDesktop.value = pendingImageURLDesktop.indexOf("http") === 0 ? pendingImageURLDesktop : "";
+      previewImgDesktop.src = pendingImageURLDesktop;
+      previewImgDesktop.style.display = pendingImageURLDesktop ? "block" : "none";
+      uploadHintDesktop.style.display = pendingImageURLDesktop ? "none" : "flex";
+
+      pendingImageURLMobile = d.imageMobile || "";
+      imgUrlInputMobile.value = pendingImageURLMobile.indexOf("http") === 0 ? pendingImageURLMobile : "";
+      previewImgMobile.src = pendingImageURLMobile;
+      previewImgMobile.style.display = pendingImageURLMobile ? "block" : "none";
+      uploadHintMobile.style.display = pendingImageURLMobile ? "none" : "flex";
+
       activeToggle.checked = !!d.active;
       deleteBtn.style.display = "inline-flex";
       if (d.productId || d.itemName) {
@@ -5204,10 +5250,17 @@ NotificationSystem.init();
       }
     } else {
       modalTitle.textContent = "New Deal";
-      pendingImageURL = "";
-      imgUrlInput.value = "";
-      previewImg.style.display = "none";
-      uploadHint.style.display = "flex";
+
+      pendingImageURLDesktop = "";
+      imgUrlInputDesktop.value = "";
+      previewImgDesktop.style.display = "none";
+      uploadHintDesktop.style.display = "flex";
+
+      pendingImageURLMobile = "";
+      imgUrlInputMobile.value = "";
+      previewImgMobile.style.display = "none";
+      uploadHintMobile.style.display = "flex";
+
       activeToggle.checked = true;
       deleteBtn.style.display = "none";
       pickedProduct = null;
@@ -5232,33 +5285,62 @@ NotificationSystem.init();
      No Firebase Storage involved — the photo is embedded directly as the
      image (same approach your Product Manager already uses), or you can
      paste a link instead via the Image URL field below it. */
-  imgInput.addEventListener("change", function () {
-    const file = imgInput.files[0];
+  imgInputDesktop.addEventListener("change", function () {
+    const file = imgInputDesktop.files[0];
     if (!file) return;
     if (file.size > 700 * 1024) {
       setStatus("That photo is a bit heavy to embed directly — try a smaller one, or use the Image URL field instead for full-size photos.", "err");
-      imgInput.value = "";
+      imgInputDesktop.value = "";
       return;
     }
     const reader = new FileReader();
     reader.onload = function (e) {
-      pendingImageData = e.target.result;
-      imgUrlInput.value = "";
-      previewImg.src = pendingImageData;
-      previewImg.style.display = "block";
-      uploadHint.style.display = "none";
+      pendingImageDataDesktop = e.target.result;
+      imgUrlInputDesktop.value = "";
+      previewImgDesktop.src = pendingImageDataDesktop;
+      previewImgDesktop.style.display = "block";
+      uploadHintDesktop.style.display = "none";
     };
     reader.readAsDataURL(file);
   });
 
-  imgUrlInput.addEventListener("input", function () {
-    const url = imgUrlInput.value.trim();
+  imgUrlInputDesktop.addEventListener("input", function () {
+    const url = imgUrlInputDesktop.value.trim();
     if (!url) return;
-    pendingImageData = "";
-    imgInput.value = "";
-    previewImg.src = url;
-    previewImg.style.display = "block";
-    uploadHint.style.display = "none";
+    pendingImageDataDesktop = "";
+    imgInputDesktop.value = "";
+    previewImgDesktop.src = url;
+    previewImgDesktop.style.display = "block";
+    uploadHintDesktop.style.display = "none";
+  });
+
+  imgInputMobile.addEventListener("change", function () {
+    const file = imgInputMobile.files[0];
+    if (!file) return;
+    if (file.size > 700 * 1024) {
+      setStatus("That photo is a bit heavy to embed directly — try a smaller one, or use the Image URL field instead for full-size photos.", "err");
+      imgInputMobile.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      pendingImageDataMobile = e.target.result;
+      imgUrlInputMobile.value = "";
+      previewImgMobile.src = pendingImageDataMobile;
+      previewImgMobile.style.display = "block";
+      uploadHintMobile.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  imgUrlInputMobile.addEventListener("input", function () {
+    const url = imgUrlInputMobile.value.trim();
+    if (!url) return;
+    pendingImageDataMobile = "";
+    imgInputMobile.value = "";
+    previewImgMobile.src = url;
+    previewImgMobile.style.display = "block";
+    uploadHintMobile.style.display = "none";
   });
 
   /* ---------------- item search ---------------- */
@@ -5293,9 +5375,10 @@ NotificationSystem.init();
 
   /* ---------------- save / delete ---------------- */
   saveBtn.addEventListener("click", function () {
-    const finalImage = pendingImageData || imgUrlInput.value.trim() || pendingImageURL || "";
-    if (!finalImage) {
-      setStatus("Please add a photo for this deal — upload one or paste an image URL.", "err");
+    const finalImageDesktop = pendingImageDataDesktop || imgUrlInputDesktop.value.trim() || pendingImageURLDesktop || "";
+    const finalImageMobile = pendingImageDataMobile || imgUrlInputMobile.value.trim() || pendingImageURLMobile || "";
+    if (!finalImageDesktop && !finalImageMobile) {
+      setStatus("Please add at least one photo for this deal — desktop, mobile, or both.", "err");
       return;
     }
     saveBtn.disabled = true;
@@ -5303,7 +5386,9 @@ NotificationSystem.init();
 
     const dealObj = {
       active: !!activeToggle.checked,
-      image: finalImage,
+      image: finalImageDesktop || finalImageMobile,       // kept so older website code (that only reads "image") still works
+      imageDesktop: finalImageDesktop || finalImageMobile, // used on desktop/laptop screens
+      imageMobile: finalImageMobile || finalImageDesktop,  // used on phone screens
       productId: pickedProduct ? pickedProduct.id : "",
       itemName: pickedProduct ? pickedProduct.name : ""
     };
@@ -5470,4 +5555,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html> 
+</html>
