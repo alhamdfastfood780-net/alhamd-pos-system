@@ -488,7 +488,7 @@
   .chart-scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:4px;position:relative;}
   .chart-scroll::-webkit-scrollbar{height:8px;}
   .chart-scroll::-webkit-scrollbar-thumb{background:rgba(28,17,12,0.18);border-radius:4px;}
-  .chart-wrap{height:220px;position:relative;}
+  .chart-wrap{position:relative;line-height:0;}
   .chart-tooltip{position:absolute;pointer-events:none;background:#1c1310;color:#fff;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .1s;z-index:5;box-shadow:0 4px 10px rgba(0,0,0,0.2);}
   .chart-tooltip.show{opacity:1;}
   .chart-crosshair{stroke:rgba(28,17,12,0.25);stroke-width:1;stroke-dasharray:3,3;pointer-events:none;}
@@ -1323,6 +1323,15 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   .expense-field{ min-width:0; }
 }
 
+@media (max-width:640px){
+  .chart-header-row{ align-items:flex-start; flex-direction:column; gap:4px; }
+  .chart-header-row h3{ font-size:15px; }
+  .chart-header-row span{ font-size:11px; }
+  .chart-sub-title{ font-size:12px; }
+  .chart-scroll{ -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px 4px; }
+  .chart-tooltip{ font-size:11px; padding:5px 8px; }
+}
+
 </style>
 </head>
 <body>
@@ -1754,6 +1763,12 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
             <input type="date" id="reportDateInput" onchange="renderSalesReport()">
           </div>
         </div>
+        <div class="expense-form" style="margin-bottom:14px;">
+          <div class="expense-field">
+            <label for="reportSearchInput">🔍 Search this period (item, salesman, cash/online, paid/pending, time)</label>
+            <input type="text" id="reportSearchInput" placeholder="e.g. Zaid, online, pending, Zinger Burger, 07:30 PM" oninput="renderSalesReport()">
+          </div>
+        </div>
         <div class="expense-total-row" style="flex-direction:column;align-items:stretch;gap:6px;font-weight:400;">
           <div style="display:flex;justify-content:space-between;"><span>Bills</span><span id="reportBills">0</span></div>
           <div style="display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #eee;padding-top:6px;"><span>Sales Total</span><span id="reportSales">Rs 0</span></div>
@@ -1954,6 +1969,10 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
           <div class="expense-field" style="max-width:220px;">
             <label for="expenseReportDateInput">Pick a date (defaults to today)</label>
             <input type="date" id="expenseReportDateInput" onchange="renderExpensesOwner()">
+          </div>
+          <div class="expense-field">
+            <label for="expenseSearchInput">🔍 Search this period (description, payment, added by, time)</label>
+            <input type="text" id="expenseSearchInput" placeholder="e.g. rent, cash, online, Zaid, 07:30 PM" oninput="renderExpensesOwner()">
           </div>
         </div>
         <table>
@@ -2532,7 +2551,7 @@ expensesCollection.orderBy("date", "desc").onSnapshot((snapshot) => {
   FIRESTORE_USAGE_ESTIMATE.expensesBytes = snapshot.docs.reduce((sum, doc) => sum + estimateBytes(doc.data()), 0);
   notifyStorageUsageChanged();
   renderExpensesSalesman();
-  if(currentUser && currentUser.role === "owner") renderExpensesOwner();
+  if(currentUser && currentUser.role === "owner") renderOwnerDashboard();
 }, (err) => {
   console.error("Expense cloud sync (listen) failed:", err);
 });
@@ -2935,10 +2954,25 @@ function renderExpensesOwner(){
   if(labelEl) labelEl.textContent = isToday ? "Today's Total Expenses" : `Total Expenses — ${rangeLabel}`;
 
   const periodExpensesList = expenses.filter(e => matches(e.date));
-  if(periodExpensesList.length === 0){
-    body.innerHTML = `<tr class="empty-row"><td colspan="7">${isToday ? "No expenses recorded today." : "No expenses recorded in this period."}</td></tr>`;
+
+  // Search only ever narrows down THIS period's results — it never reaches
+  // into other days/weeks/months.
+  const searchInput = document.getElementById('expenseSearchInput');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const searchedExpensesList = searchTerm ? periodExpensesList.filter(e => {
+    const haystack = [
+      e.description, e.amount,
+      (e.paymentMethod || 'cash') === 'online' ? 'online' : 'cash',
+      e.addedBy, e.addedByUsername,
+      formatTime(e.date), formatDate(e.date)
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(searchTerm);
+  }) : periodExpensesList;
+
+  if(searchedExpensesList.length === 0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="7">${searchTerm ? "No matching expenses in this period." : (isToday ? "No expenses recorded today." : "No expenses recorded in this period.")}</td></tr>`;
   } else {
-    body.innerHTML = periodExpensesList.map(e => `
+    body.innerHTML = searchedExpensesList.map(e => `
       <tr>
         <td>${formatDate(e.date)}</td>
         <td>${formatTime(e.date)}</td>
@@ -2953,7 +2987,7 @@ function renderExpensesOwner(){
       </tr>
     `).join('');
   }
-  const periodTotal = periodExpensesList.reduce((s,e)=>s+e.amount,0);
+  const periodTotal = searchedExpensesList.reduce((s,e)=>s+e.amount,0);
   const grandTotalEl = document.getElementById('expenseGrandTotalOwner');
   if(grandTotalEl) grandTotalEl.textContent = `Rs ${periodTotal.toLocaleString()}`;
 
@@ -4242,12 +4276,30 @@ function renderSalesReport(){
   };
 
   const periodSales = sales.filter(s => matches(s.date) && (paymentFilter === 'all' || (s.paymentMethod || 'cash') === paymentFilter));
-  const salesTotal = periodSales.reduce((a,s)=>a+s.total,0);
 
-  document.getElementById('reportBills').textContent = periodSales.length;
+  // Search only ever narrows down THIS period's results — it never reaches
+  // into other days/weeks/months.
+  const searchInput = document.getElementById('reportSearchInput');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const searchedSales = searchTerm ? periodSales.filter(s => {
+    const haystack = [
+      s.billNo,
+      s.cashier, s.cashierUsername,
+      (s.paymentMethod || 'cash') === 'online' ? 'online' : 'cash',
+      (s.paymentStatus || 'paid') === 'pending' ? 'pending' : 'paid',
+      formatTime(s.date), formatDate(s.date),
+      s.orderType, s.customerNumber,
+      ...(s.items || []).map(i => i.name)
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(searchTerm);
+  }) : periodSales;
+
+  const salesTotal = searchedSales.reduce((a,s)=>a+s.total,0);
+
+  document.getElementById('reportBills').textContent = searchedSales.length;
   document.getElementById('reportSales').textContent = `Rs ${salesTotal.toLocaleString()}`;
 
-  renderReportDetails(periodSales);
+  renderReportDetails(searchedSales);
   renderUnpaidBills();
 }
 
@@ -4404,6 +4456,16 @@ function renderTrendChart(){
   });
 }
 
+// Redraw charts at the right size when the screen rotates or resizes
+// (so it stays crisp switching between mobile and desktop).
+let _chartResizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_chartResizeTimer);
+  _chartResizeTimer = setTimeout(()=>{
+    if(currentUser && currentUser.role === 'owner') renderTrendChart();
+  }, 200);
+});
+
 // Catmull-Rom to Bezier smoothing so the line curves like a real trend line.
 function smoothPath(points){
   if(points.length < 3){
@@ -4447,12 +4509,16 @@ function buildLineChart(opts){
     return;
   }
 
-  const colWidth = 46;
-  const svgW = Math.max(days.length * colWidth, 320);
-  const svgH = 220;
-  const padTop = 16, padBottom = 32, padLeft = 8, padRight = 8;
+  const isMobile = window.innerWidth <= 640;
+  const colWidth = isMobile ? 34 : 46;
+  const svgW = Math.max(days.length * colWidth, isMobile ? 260 : 320);
+  const svgH = isMobile ? 180 : 220;
+  const padTop = 16, padBottom = isMobile ? 26 : 32, padLeft = 8, padRight = 8;
   const plotH = svgH - padTop - padBottom;
   const plotW = svgW - padLeft - padRight;
+  const fontSizeY = isMobile ? 9 : 10;
+  const fontSizeX = isMobile ? 9 : 10;
+  const dotR = isMobile ? 2.3 : 3;
 
   const rawMax = Math.max(...days.map(d=>d[valueKey]), 0);
   const maxVal = Math.max(niceMax(rawMax * 1.15), 5);
@@ -4471,13 +4537,13 @@ function buildLineChart(opts){
     const v = maxVal * (g/gridSteps);
     const y = (padTop + plotH - (v/maxVal)*plotH).toFixed(1);
     gridLines.push(`<line x1="${padLeft}" y1="${y}" x2="${svgW-padRight}" y2="${y}" stroke="rgba(28,17,12,0.07)" stroke-width="1"/>`);
-    yLabels.push(`<text x="2" y="${(Number(y)+4)}" font-size="10" fill="#aaa">${Math.round(v).toLocaleString()}</text>`);
+    yLabels.push(`<text x="2" y="${(Number(y)+4)}" font-size="${fontSizeY}" fill="#aaa">${Math.round(v).toLocaleString()}</text>`);
   }
 
-  const labelEvery = days.length > 20 ? Math.ceil(days.length/15) : (days.length > 10 ? 2 : 1);
+  const labelEvery = days.length > 20 ? Math.ceil(days.length/(isMobile?10:15)) : (days.length > 10 ? 2 : 1);
   const xLabels = days.map((d,i)=>{
     if(i % labelEvery !== 0 && i !== days.length-1) return '';
-    return `<text x="${xFor(i).toFixed(1)}" y="${svgH-12}" font-size="10" fill="#999" text-anchor="middle">${d.label}</text>`;
+    return `<text x="${xFor(i).toFixed(1)}" y="${svgH-(isMobile?9:12)}" font-size="${fontSizeX}" fill="#999" text-anchor="middle">${d.label}</text>`;
   }).join('');
 
   const gradId = `grad-${wrapId}`;
@@ -4491,8 +4557,8 @@ function buildLineChart(opts){
       </defs>
       ${gridLines.join('')}
       <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
-      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-      ${points.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}" stroke="#fff" stroke-width="1.2"/>`).join('')}
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="${isMobile?2:2.5}" stroke-linejoin="round" stroke-linecap="round"/>
+      ${points.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${color}" stroke="#fff" stroke-width="1.2"/>`).join('')}
       ${yLabels.join('')}
       ${xLabels}
       <line id="crosshair-${wrapId}" class="chart-crosshair" x1="0" y1="${padTop}" x2="0" y2="${padTop+plotH}" style="opacity:0;"/>
@@ -5323,4 +5389,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html>
+</html> 
