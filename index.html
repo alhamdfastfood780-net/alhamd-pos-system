@@ -482,10 +482,16 @@
   .stat-label{color:#8a8a8a;font-size:13px;margin-top:2px;}
   .panel{background:#fff;border:1px solid #eee;border-radius:16px;padding:24px;margin-bottom:24px;}
   .panel h3{margin:0 0 18px;font-size:18px;}
-  .chart-wrap{display:flex;align-items:flex-end;gap:14px;height:220px;padding:0 4px;}
-  .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
-  .chart-bar{width:100%;border-radius:6px 6px 0 0;background:var(--amber);transition:.3s;}
-  .chart-day{margin-top:8px;font-size:12px;color:#999;}
+  .chart-header-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+  .chart-sub-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#555;margin:4px 0 6px;}
+  .chart-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .chart-scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:4px;position:relative;}
+  .chart-scroll::-webkit-scrollbar{height:8px;}
+  .chart-scroll::-webkit-scrollbar-thumb{background:rgba(28,17,12,0.18);border-radius:4px;}
+  .chart-wrap{height:220px;position:relative;}
+  .chart-tooltip{position:absolute;pointer-events:none;background:#1c1310;color:#fff;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .1s;z-index:5;box-shadow:0 4px 10px rgba(0,0,0,0.2);}
+  .chart-tooltip.show{opacity:1;}
+  .chart-crosshair{stroke:rgba(28,17,12,0.25);stroke-width:1;stroke-dasharray:3,3;pointer-events:none;}
   table{width:100%;border-collapse:collapse;}
   th{text-align:left;color:#9a9a9a;font-size:13px;font-weight:600;padding:10px 8px;border-bottom:1px solid #eee;}
   td{padding:14px 8px;border-bottom:1px solid #f2f2f2;font-size:14px;}
@@ -1704,8 +1710,20 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
       </div>
 
       <div class="panel">
-        <h3>Revenue (last 7 days)</h3>
-        <div class="chart-wrap" id="chartWrap"></div>
+        <div class="chart-header-row">
+          <h3 style="margin:0;">Sales &amp; Expense Trend</h3>
+          <span style="font-size:12px;color:#999;font-weight:600;">Full history · scroll to see older days →</span>
+        </div>
+
+        <div class="chart-sub-title"><span class="chart-legend-dot" style="background:#f5a623;"></span>Sales</div>
+        <div class="chart-scroll" id="salesChartScroll">
+          <div class="chart-wrap" id="salesChartWrap"></div>
+        </div>
+
+        <div class="chart-sub-title" style="margin-top:18px;"><span class="chart-legend-dot" style="background:#e0522f;"></span>Expenses</div>
+        <div class="chart-scroll" id="expenseChartScroll">
+          <div class="chart-wrap" id="expenseChartWrap"></div>
+        </div>
       </div>
       </div>
       <!-- ================= /DASHBOARD ================= -->
@@ -4340,24 +4358,194 @@ function renderOwnerDashboard(){
   if(netEl) netEl.textContent = `Rs ${(totalRevenue - totalExpensesAll).toLocaleString()}`;
   renderSalesReport();
 
-  // last 7 days chart
-  const days = [];
-  for(let i=6;i>=0;i--){
-    const d = new Date();
-    d.setDate(d.getDate()-i);
-    const revenue = sales.filter(s=>isSameDay(s.date,d)).reduce((a,x)=>a+x.total,0);
-    days.push({label: `${String(d.getDate()).padStart(2,'0')} ${d.toLocaleString('en-US',{month:'short'})}`, revenue});
-  }
-  const maxRev = Math.max(...days.map(d=>d.revenue), 1);
-  const chartWrap = document.getElementById('chartWrap');
-  chartWrap.innerHTML = days.map(d => `
-    <div class="chart-col">
-      <div class="chart-bar" style="height:${Math.max((d.revenue/maxRev)*180, d.revenue>0?6:0)}px;" title="Rs ${d.revenue}"></div>
-      <div class="chart-day">${d.label}</div>
-    </div>
-  `).join('');
-
+  renderTrendChart();
 }
+
+// ---------- Sales & Expense line charts (scrollable, curved, hover tooltip) ----------
+// No day limit: charts always cover every day from the very first sale/expense
+// record on file up to today. Older days are reached by scrolling the chart.
+
+// Earliest date across all sales & expense records — the chart's starting point.
+function getEarliestRecordDate(){
+  const allDates = [
+    ...sales.map(s=>s.date),
+    ...expenses.map(e=>e.date)
+  ].filter(Boolean);
+  if(allDates.length === 0) return null;
+  return new Date(Math.min(...allDates.map(d=>new Date(d).setHours(0,0,0,0))));
+}
+
+function computeChartDays(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const earliest = getEarliestRecordDate() || today; // no records yet -> just show today
+  const days = [];
+  for(let d = new Date(earliest); d.getTime() <= today.getTime(); d.setDate(d.getDate()+1)){
+    const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const revenue = sales.filter(s=>isSameDay(s.date,dayDate)).reduce((a,x)=>a+x.total,0);
+    const expenseVal = expenses.filter(e=>isSameDay(e.date,dayDate)).reduce((a,e)=>a+e.amount,0);
+    days.push({
+      date: dayDate,
+      label: `${String(dayDate.getDate()).padStart(2,'0')}-${dayDate.toLocaleString('en-US',{month:'short'})}`,
+      revenue, expenseVal
+    });
+  }
+  return days;
+}
+
+function renderTrendChart(){
+  const days = computeChartDays();
+  buildLineChart({
+    wrapId: 'salesChartWrap', scrollId: 'salesChartScroll',
+    days, valueKey: 'revenue', color: '#f5a623', label: 'Sales'
+  });
+  buildLineChart({
+    wrapId: 'expenseChartWrap', scrollId: 'expenseChartScroll',
+    days, valueKey: 'expenseVal', color: '#e0522f', label: 'Expenses'
+  });
+}
+
+// Catmull-Rom to Bezier smoothing so the line curves like a real trend line.
+function smoothPath(points){
+  if(points.length < 3){
+    return points.map((p,i)=> `${i===0?'M':'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  }
+  let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} `;
+  for(let i=0;i<points.length-1;i++){
+    const p0 = points[i===0?0:i-1];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[i+2===points.length+1?i:Math.min(i+2,points.length-1)];
+    const cp1x = p1.x + (p2.x - p0.x)/6;
+    const cp1y = p1.y + (p2.y - p0.y)/6;
+    const cp2x = p2.x - (p3.x - p1.x)/6;
+    const cp2y = p2.y - (p3.y - p1.y)/6;
+    d += `C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} `;
+  }
+  return d;
+}
+
+function niceMax(val){
+  if(val <= 0) return 5;
+  const pow = Math.pow(10, Math.floor(Math.log10(val)));
+  const norm = val / pow;
+  let step;
+  if(norm <= 1) step = 1;
+  else if(norm <= 2) step = 2;
+  else if(norm <= 2.5) step = 2.5;
+  else if(norm <= 5) step = 5;
+  else step = 10;
+  return step * pow; // one "nice" unit above data, gridlines subdivide it
+}
+
+function buildLineChart(opts){
+  const { wrapId, scrollId, days, valueKey, color, label } = opts;
+  const chartWrap = document.getElementById(wrapId);
+  if(!chartWrap) return;
+
+  if(days.length === 0){
+    chartWrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:13px;">No data yet</div>`;
+    return;
+  }
+
+  const colWidth = 46;
+  const svgW = Math.max(days.length * colWidth, 320);
+  const svgH = 220;
+  const padTop = 16, padBottom = 32, padLeft = 8, padRight = 8;
+  const plotH = svgH - padTop - padBottom;
+  const plotW = svgW - padLeft - padRight;
+
+  const rawMax = Math.max(...days.map(d=>d[valueKey]), 0);
+  const maxVal = Math.max(niceMax(rawMax * 1.15), 5);
+
+  const xFor = (i) => padLeft + (days.length === 1 ? plotW/2 : (i/(days.length-1)) * plotW);
+  const yFor = (v) => padTop + plotH - (v/maxVal) * plotH;
+
+  const points = days.map((d,i)=>({ x: xFor(i), y: yFor(d[valueKey]) }));
+  const linePath = smoothPath(points);
+  const areaPath = `${linePath} L ${points[points.length-1].x.toFixed(1)} ${(padTop+plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padTop+plotH).toFixed(1)} Z`;
+
+  const gridSteps = 5;
+  const gridLines = [];
+  const yLabels = [];
+  for(let g=0; g<=gridSteps; g++){
+    const v = maxVal * (g/gridSteps);
+    const y = (padTop + plotH - (v/maxVal)*plotH).toFixed(1);
+    gridLines.push(`<line x1="${padLeft}" y1="${y}" x2="${svgW-padRight}" y2="${y}" stroke="rgba(28,17,12,0.07)" stroke-width="1"/>`);
+    yLabels.push(`<text x="2" y="${(Number(y)+4)}" font-size="10" fill="#aaa">${Math.round(v).toLocaleString()}</text>`);
+  }
+
+  const labelEvery = days.length > 20 ? Math.ceil(days.length/15) : (days.length > 10 ? 2 : 1);
+  const xLabels = days.map((d,i)=>{
+    if(i % labelEvery !== 0 && i !== days.length-1) return '';
+    return `<text x="${xFor(i).toFixed(1)}" y="${svgH-12}" font-size="10" fill="#999" text-anchor="middle">${d.label}</text>`;
+  }).join('');
+
+  const gradId = `grad-${wrapId}`;
+  chartWrap.innerHTML = `
+    <svg id="svg-${wrapId}" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="display:block;overflow:visible;">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.32"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      ${gridLines.join('')}
+      <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${points.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}" stroke="#fff" stroke-width="1.2"/>`).join('')}
+      ${yLabels.join('')}
+      ${xLabels}
+      <line id="crosshair-${wrapId}" class="chart-crosshair" x1="0" y1="${padTop}" x2="0" y2="${padTop+plotH}" style="opacity:0;"/>
+      <circle id="hoverdot-${wrapId}" r="4.5" fill="${color}" stroke="#fff" stroke-width="2" style="opacity:0;"/>
+    </svg>
+    <div class="chart-tooltip" id="tooltip-${wrapId}"></div>
+  `;
+
+  // hover / touch tracking to show the value at whatever point the mouse/finger is at
+  const svgEl = document.getElementById(`svg-${wrapId}`);
+  const tooltipEl = document.getElementById(`tooltip-${wrapId}`);
+  const crosshairEl = document.getElementById(`crosshair-${wrapId}`);
+  const hoverDotEl = document.getElementById(`hoverdot-${wrapId}`);
+  const scrollEl = document.getElementById(scrollId);
+
+  function showAt(clientX){
+    const rect = svgEl.getBoundingClientRect();
+    const scaleX = svgW / rect.width;
+    const localX = (clientX - rect.left) * scaleX;
+    let idx = 0, best = Infinity;
+    points.forEach((p,i)=>{
+      const dist = Math.abs(p.x - localX);
+      if(dist < best){ best = dist; idx = i; }
+    });
+    const p = points[idx];
+    const d = days[idx];
+    crosshairEl.setAttribute('x1', p.x); crosshairEl.setAttribute('x2', p.x);
+    crosshairEl.style.opacity = 1;
+    hoverDotEl.setAttribute('cx', p.x); hoverDotEl.setAttribute('cy', p.y);
+    hoverDotEl.style.opacity = 1;
+
+    const scaleXInv = rect.width / svgW;
+    tooltipEl.style.left = `${p.x * scaleXInv}px`;
+    tooltipEl.style.top = `${p.y * (rect.height/svgH)}px`;
+    tooltipEl.textContent = `${d.label} · ${label} Rs ${d[valueKey].toLocaleString()}`;
+    tooltipEl.classList.add('show');
+  }
+  function hide(){
+    crosshairEl.style.opacity = 0;
+    hoverDotEl.style.opacity = 0;
+    tooltipEl.classList.remove('show');
+  }
+
+  svgEl.addEventListener('mousemove', (e)=> showAt(e.clientX));
+  svgEl.addEventListener('mouseleave', hide);
+  svgEl.addEventListener('touchstart', (e)=>{ if(e.touches[0]) showAt(e.touches[0].clientX); }, {passive:true});
+  svgEl.addEventListener('touchmove', (e)=>{ if(e.touches[0]) showAt(e.touches[0].clientX); }, {passive:true});
+  svgEl.addEventListener('touchend', hide);
+
+  // auto-scroll to the most recent day
+  if(scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
+}
+
 
 function viewSale(billNo){
   const sale = sales.find(s => s.billNo === billNo);
@@ -5135,4 +5323,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html> 
+</html>
