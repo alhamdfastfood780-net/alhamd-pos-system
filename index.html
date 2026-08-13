@@ -2001,6 +2001,18 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
         </div>
       </div>
 
+      <!-- ================= WEBSITE THEME (Independence Day) ================= -->
+      <div class="panel">
+        <h3>🎨 Website Theme</h3>
+        <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Controls the ordering website's color theme live. Switch to Independence Day for 14 August — the whole site turns green, plus a special banner appears. Tap Default to revert instantly.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <button class="add-expense-btn" id="themeBtnIndependence" onclick="updateThemeSetting('independence_day')">🇵🇰 Independence Day</button>
+          <button class="add-expense-btn" id="themeBtnDefault" onclick="updateThemeSetting('default')" style="background:#666;">↩️ Default</button>
+          <span class="price-saved-tag" id="themeSavedTag">Saved ✓</span>
+        </div>
+        <p style="font-size:13px;margin:10px 0 0;color:#444;">Current: <strong id="themeCurrentLabel">Default</strong></p>
+      </div>
+
       <div class="panel">
         <h3>👥 Admin Users</h3>
         <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Everyone with admin access to this panel.</p>
@@ -2622,6 +2634,7 @@ settingsDocRef.onSnapshot((doc) => {
   }
   if (typeof d.deliveryChargeAmount === 'number') deliveryChargeAmount = d.deliveryChargeAmount;
   if (typeof d.deliveryEnabled === 'boolean') deliveryEnabled = d.deliveryEnabled;
+  if (typeof d.theme === 'string') currentTheme = d.theme;
   if (d.salesmanUsername) SALESMEN[0].username = d.salesmanUsername;
   if (d.salesmanPassword) SALESMEN[0].password = d.salesmanPassword;
   if (d.salesmanPhoto) SALESMEN[0].photo = d.salesmanPhoto;
@@ -2686,6 +2699,7 @@ settingsDocRef.onSnapshot((doc) => {
   renderCategories();
   if (document.getElementById('productGrid')) renderProducts();
   refreshDeliveryChargeUI();
+  refreshThemeSettingUI();
   if (currentUser && currentUser.role === 'owner') {
     renderPriceManager();
     pmRefreshCategorySelect();
@@ -2699,6 +2713,31 @@ settingsDocRef.onSnapshot((doc) => {
 function pushSettingsToCloud(partial) {
   settingsDocRef.set(partial, { merge: true })
     .catch(err => console.error("Settings sync (write) failed:", err));
+}
+
+/* ---------------- WEBSITE THEME (Independence Day toggle, synced via settings/main.theme) ----------------
+   The ordering website (js/menu.js) listens to the same settings/main document and reads
+   this field to switch its whole color palette + show/hide the "14 August" banner.
+--------------------------------------------------------------------- */
+let currentTheme = "default"; // "default" | "independence_day"
+
+function updateThemeSetting(themeValue){
+  currentTheme = themeValue;
+  pushSettingsToCloud({ theme: themeValue });
+  refreshThemeSettingUI();
+  const tag = document.getElementById('themeSavedTag');
+  if(tag){
+    tag.classList.add('show');
+    setTimeout(() => tag.classList.remove('show'), 1400);
+  }
+}
+function refreshThemeSettingUI(){
+  const label = document.getElementById('themeCurrentLabel');
+  if(label) label.textContent = currentTheme === 'independence_day' ? 'Independence Day 🇵🇰' : 'Default';
+  const btnInd = document.getElementById('themeBtnIndependence');
+  const btnDef = document.getElementById('themeBtnDefault');
+  if(btnInd) btnInd.style.outline = currentTheme === 'independence_day' ? '3px solid #0F7D3B' : 'none';
+  if(btnDef) btnDef.style.outline = currentTheme !== 'independence_day' ? '3px solid #444' : 'none';
 }
 
 /* ---------------- DELIVERY CHARGE (Owner-editable, saved in browser) ---------------- */
@@ -5431,4 +5470,4 @@ function toggleOrderType() {
 })();
 </script>
 </body>
-</html>
+</html> 
