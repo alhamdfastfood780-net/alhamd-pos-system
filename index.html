@@ -3126,6 +3126,18 @@ function renderAdminUsersList(){
 const SALESMAN_NAME_KEY = "alhamd_salesman_last_name";
 const CREDENTIALS_KEY = "alhamd_login_credentials";
 
+/* Remembers WHO is logged in (role + which account) so that a page
+   refresh (F5) can put the user straight back on their own screen
+   instead of bouncing them back to the login page. Only a role/account
+   marker is saved here — never a password. */
+const SESSION_KEY = "alhamd_pos_session";
+function saveSession(session){
+  try{ localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }catch(e){ /* ignore storage errors */ }
+}
+function clearSession(){
+  try{ localStorage.removeItem(SESSION_KEY); }catch(e){ /* ignore storage errors */ }
+}
+
 /* Loads any saved username/password changes the owner made, so they
    survive a page refresh. Falls back to the defaults above if none saved. */
 function loadCredentials(){
@@ -3349,6 +3361,7 @@ function handleLogin(){
     let savedName = "";
     try{ savedName = localStorage.getItem(SALESMAN_NAME_KEY) || ""; }catch(e){ /* ignore storage errors */ }
     currentUser = {name: savedName, username: account.username, role:"salesman"};
+    saveSession({role:"salesman"});
     document.getElementById("profileName").textContent = currentUser.name || "Salesman";
 document.getElementById("profileRole").textContent = "Salesman";
     if(account.photo){
@@ -3385,6 +3398,7 @@ document.getElementById("profileRole").textContent = "Salesman";
     errEl.textContent = "";
     currentOwnerAccountRef = matchedAccount;
     currentUser = {name: matchedAccount.name, username: matchedAccount.username, role:"owner"};
+    saveSession({role:"owner", accountType: matchedAccount === SECOND_ADMIN_ACCOUNT ? "admin" : "owner"});
    document.getElementById("ownerProfileName").textContent = matchedAccount.name;
 document.getElementById("ownerProfileRole").textContent = matchedAccount.role || "Owner";
     const btnImg = document.getElementById('ownerProfileImgBtn');
@@ -3841,6 +3855,7 @@ function showAdminSection(name){
 function logout(){
   currentUser = null;
   currentOwnerAccountRef = null;
+  clearSession();
   bill = [];
   document.getElementById('salesmanScreen').classList.add('hidden');
   document.getElementById('ownerScreen').classList.add('hidden');
@@ -3850,6 +3865,78 @@ function logout(){
   document.getElementById('loginError').textContent='';
   const nameInput = document.getElementById('salesmanNameInput');
   if(nameInput){ nameInput.value=''; nameInput.removeAttribute('readonly'); }
+}
+
+/* Runs once on every page load. If a session marker was saved by a
+   previous successful login, this rebuilds that same signed-in screen
+   (salesman POS or owner dashboard) instead of leaving the visitor on
+   the login page — this is what makes an F5 refresh stay put instead
+   of logging the user out. No password is ever stored or re-checked
+   here; this only restores an ALREADY authenticated session. */
+function restoreSession(){
+  let session = null;
+  try{
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(raw) session = JSON.parse(raw);
+  }catch(e){ session = null; }
+  if(!session || !session.role) return;
+
+  if(session.role === 'salesman'){
+    const account = SALESMEN[0];
+    let savedName = '';
+    try{ savedName = localStorage.getItem(SALESMAN_NAME_KEY) || ''; }catch(e){ /* ignore storage errors */ }
+    currentUser = {name: savedName, username: account.username, role:"salesman"};
+    document.getElementById("profileName").textContent = currentUser.name || "Salesman";
+    document.getElementById("profileRole").textContent = "Salesman";
+    if(account.photo){
+      const btnImg = document.getElementById('salesmanProfileImgBtn');
+      const largeImg = document.getElementById('salesmanProfileImgLarge');
+      if(btnImg) btnImg.src = account.photo;
+      if(largeImg) largeImg.src = account.photo;
+    }
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('salesmanScreen').classList.remove('hidden');
+    document.getElementById('salesmanSubtitle').textContent = "Salesman POS";
+    const nameInput = document.getElementById('salesmanNameInput');
+    if(nameInput){
+      nameInput.value = savedName;
+      nameInput.removeAttribute('readonly');
+    }
+    renderCategories();
+    renderProducts();
+    setDeliveryOption('free');
+    refreshDeliveryChargeUI();
+    renderBill();
+    renderExpensesSalesman();
+  } else if(session.role === 'owner'){
+    const matchedAccount = session.accountType === 'admin' ? SECOND_ADMIN_ACCOUNT : OWNER_ACCOUNT;
+    currentOwnerAccountRef = matchedAccount;
+    currentUser = {name: matchedAccount.name, username: matchedAccount.username, role:"owner"};
+    document.getElementById("ownerProfileName").textContent = matchedAccount.name;
+    document.getElementById("ownerProfileRole").textContent = matchedAccount.role || "Owner";
+    const btnImg = document.getElementById('ownerProfileImgBtn');
+    const largeImg = document.getElementById('ownerProfileImgLarge');
+    if(matchedAccount.photo){
+      if(btnImg) btnImg.src = matchedAccount.photo;
+      if(largeImg) largeImg.src = matchedAccount.photo;
+    } else {
+      if(btnImg) btnImg.src = "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg";
+      if(largeImg) largeImg.src = "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg";
+    }
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('ownerScreen').classList.remove('hidden');
+    document.getElementById('ownerSubtitle').textContent = (matchedAccount.role || "Owner") + " Dashboard · " + matchedAccount.name;
+    showAdminSection('dashboard');
+    pmRefreshCategorySelect();
+    pmRenderCategoryManager();
+    renderProductManagerList();
+    renderOwnerDashboard();
+    renderPriceManager();
+    renderCategoryManager();
+    refreshDeliveryChargeUI();
+    renderCredentialsManager();
+    loadSalesFromCloud();
+  }
 }
 
 /* ---------------- SALESMAN POS ---------------- */
@@ -4952,6 +5039,10 @@ startLogoSlider(3200); // cycles logo <-> owner photo every 3.2s, forever
 
 // Set the header shop-logo images (salesman + owner topbars) to the restaurant logo
 document.querySelectorAll('.shop-logo-img').forEach(function(img){ img.src = RESTAURANT_LOGO; });
+
+// If someone is already signed in (from before this refresh), put them
+// straight back on their own screen instead of the login page.
+restoreSession();
 
 /* ================= NOTIFICATION SYSTEM (Admin only) - START =================
    Modular: register more alert types later via NotificationSystem.registerAlert().
