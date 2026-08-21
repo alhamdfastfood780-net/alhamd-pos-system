@@ -1339,6 +1339,47 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   .chart-tooltip{ font-size:11px; padding:5px 8px; }
 }
 
+/* ---------------- TOP SELLING ITEMS ---------------- */
+.top-item-empty{ padding:22px 0; text-align:center; color:#999; font-size:13px; }
+.top-item-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f2f2f2; }
+.top-item-row:last-child{ border-bottom:none; }
+.top-item-media{ position:relative; width:44px; height:44px; flex-shrink:0; }
+.top-item-img{
+  width:44px; height:44px; border-radius:12px; object-fit:cover; display:block;
+  background:#f3ede8; border:1px solid #f0e6dc;
+}
+.top-item-img-placeholder{
+  width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  font-size:20px; background:linear-gradient(135deg,#fbe9df,#f6d5c5);
+}
+.top-item-rank-badge{
+  position:absolute; bottom:-4px; right:-4px;
+  min-width:20px; height:20px; padding:0 3px; border-radius:50%;
+  background:#fff; border:1.5px solid #fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; color:#e0522f;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);
+}
+.top-item-info{ flex:1; min-width:0; }
+.top-item-name-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.top-item-name{ font-weight:700; font-size:14px; color:#1c1310; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.top-item-qty{ font-size:12.5px; font-weight:800; color:#e0522f; flex-shrink:0; white-space:nowrap; }
+.top-item-bar-track{ background:#f3ede8; border-radius:999px; height:8px; overflow:hidden; }
+.top-item-bar-fill{ background:linear-gradient(90deg,#f5a623,#e0522f); height:100%; border-radius:999px; transition:width .4s ease; }
+
+@media (max-width:640px){
+  .top-item-name{ font-size:13px; }
+  .top-item-qty{ font-size:11px; }
+  .top-item-row{ gap:9px; padding:8px 0; }
+  .top-item-media{ width:38px; height:38px; }
+  .top-item-img, .top-item-img-placeholder{ width:38px; height:38px; border-radius:10px; font-size:17px; }
+  .top-item-rank-badge{ min-width:17px; height:17px; font-size:9.5px; bottom:-3px; right:-3px; }
+}
+@media (max-width:420px){
+  #topItemsPanel .expense-form{ flex-direction:column; align-items:stretch; }
+  #topItemsPanel .expense-field{ max-width:none !important; min-width:0; }
+}
+
 </style>
 </head>
 <body>
@@ -1741,6 +1782,34 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
           <div class="chart-wrap" id="expenseChartWrap"></div>
         </div>
       </div>
+
+      <!-- ================= TOP SELLING ITEMS ================= -->
+      <div class="panel" id="topItemsPanel">
+        <div class="chart-header-row">
+          <h3 style="margin:0;">🏆 Top Selling Items</h3>
+        </div>
+        <div class="expense-form" style="margin-bottom:14px;">
+          <div class="expense-field" style="max-width:220px;">
+            <label for="topItemsRangeSelect">View by</label>
+            <select id="topItemsRangeSelect" onchange="setTopItemsMode(this.value)">
+              <option value="daily">Today</option>
+              <option value="weekly">This Week</option>
+              <option value="monthly">This Month</option>
+              <option value="yearly">This Year</option>
+            </select>
+          </div>
+          <div class="expense-field" style="max-width:220px;">
+            <label for="topItemsDateInput">Pick a date (defaults to today)</label>
+            <input type="date" id="topItemsDateInput" onchange="renderTopSellingItems()">
+          </div>
+        </div>
+        <div class="expense-total-row" style="margin-bottom:6px;">
+          <span id="topItemsPeriodLabel">Today</span>
+          <span id="topItemsTotalQty">0 items sold</span>
+        </div>
+        <div id="topItemsList"></div>
+      </div>
+      <!-- ================= /TOP SELLING ITEMS ================= -->
       </div>
       <!-- ================= /DASHBOARD ================= -->
 
@@ -4508,6 +4577,101 @@ function renderSalesReport(){
   renderUnpaidBills();
 }
 
+/* ---------------- TOP SELLING ITEMS (Today / Week / Month / Year / any date) ---------------- */
+let topItemsMode = 'daily';
+function setTopItemsMode(mode){
+  topItemsMode = mode;
+  const sel = document.getElementById('topItemsRangeSelect');
+  if(sel) sel.value = mode;
+  renderTopSellingItems();
+}
+
+function renderTopSellingItems(){
+  const dateInput = document.getElementById('topItemsDateInput');
+  if(!dateInput) return;
+  if(!dateInput.value){
+    const t = new Date();
+    dateInput.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+  const picked = new Date(dateInput.value + 'T00:00:00');
+
+  const matches = (d) => {
+    if(topItemsMode === 'daily') return isSameDay(d, picked);
+    if(topItemsMode === 'weekly') return isSameWeek(d, picked);
+    if(topItemsMode === 'monthly') return d.getFullYear() === picked.getFullYear() && d.getMonth() === picked.getMonth();
+    return d.getFullYear() === picked.getFullYear();
+  };
+
+  const periodSales = sales.filter(s => matches(s.date));
+
+  // Tally quantity sold per item name across every bill in this period.
+  const counts = {};
+  periodSales.forEach(s => {
+    (s.items || []).forEach(i => {
+      counts[i.name] = (counts[i.name] || 0) + (i.qty || 0);
+    });
+  });
+
+  const ranked = Object.entries(counts)
+    .map(([name, qty]) => ({ name, qty }))
+    .sort((a, b) => b.qty - a.qty);
+
+  const totalQty = ranked.reduce((a, r) => a + r.qty, 0);
+  const maxQty = ranked.length ? ranked[0].qty : 0;
+
+  const labelMap = { daily: 'Selected Day', weekly: 'Selected Week', monthly: 'Selected Month', yearly: 'Selected Year' };
+  const labelEl = document.getElementById('topItemsPeriodLabel');
+  if(labelEl) labelEl.textContent = labelMap[topItemsMode] || 'Period';
+  const totalEl = document.getElementById('topItemsTotalQty');
+  if(totalEl) totalEl.textContent = `${totalQty} item${totalQty === 1 ? '' : 's'} sold`;
+
+  const listEl = document.getElementById('topItemsList');
+  if(!listEl) return;
+
+  if(ranked.length === 0){
+    listEl.innerHTML = `<div class="top-item-empty">No items sold in this period.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = ranked.map((r, idx) => {
+    const pct = maxQty ? Math.round((r.qty / maxQty) * 100) : 0;
+    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1);
+    const imgSrc = getTopItemImage(r.name);
+    const mediaHtml = imgSrc
+      ? `<img class="top-item-img" src="${imgSrc}" alt="${r.name}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'top-item-img-placeholder',textContent:'🍽️'}))">`
+      : `<div class="top-item-img-placeholder">🍽️</div>`;
+    return `
+      <div class="top-item-row">
+        <div class="top-item-media">
+          ${mediaHtml}
+          <span class="top-item-rank-badge">${medal}</span>
+        </div>
+        <div class="top-item-info">
+          <div class="top-item-name-row">
+            <span class="top-item-name">${r.name}</span>
+            <span class="top-item-qty">${r.qty} sold</span>
+          </div>
+          <div class="top-item-bar-track">
+            <div class="top-item-bar-fill" style="width:${pct}%;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Looks up the product photo for an item name from the live menu (PRODUCTS).
+// Falls back to a plate emoji placeholder when the product has no image set.
+function getTopItemImage(name){
+  try{
+    if(typeof PRODUCTS !== 'undefined' && Array.isArray(PRODUCTS)){
+      const p = PRODUCTS.find(p => p.name === name);
+      if(p && p.image) return p.image;
+    }
+  }catch(e){ /* ignore lookup errors, just fall back to placeholder */ }
+  return '';
+}
+
 /* ---------------- UNPAID BILLS ---------------- */
 function renderUnpaidBills(){
   const badge = document.getElementById('unpaidNavBadge');
@@ -4614,6 +4778,7 @@ function renderOwnerDashboard(){
   const netEl = document.getElementById('statNetProfit');
   if(netEl) netEl.textContent = `Rs ${(totalRevenue - totalExpensesAll).toLocaleString()}`;
   renderSalesReport();
+  renderTopSellingItems();
 
   renderTrendChart();
 }
