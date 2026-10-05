@@ -2996,8 +2996,9 @@ const NotificationSystem = (function(){
       : '<div class="notif-empty">No notifications</div>';
 
     if(active.length){
+      const totalCount = active.reduce(function(n, r){ return n + ((r.result.data && r.result.data.count) || 1); }, 0);
       els.badge.style.display = 'flex';
-      els.badge.textContent = active.length > 9 ? '9+' : active.length;
+      els.badge.textContent = totalCount > 9 ? '9+' : totalCount;
       if(!isOpen) els.bellIcon.classList.add('notif-ringing');
     }else{
       els.badge.style.display = 'none';

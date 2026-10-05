@@ -703,3 +703,32 @@
   .admin-sidebar{ padding-top:12px; }
   .admin-nav-btn{ padding:9px 12px; min-height:40px; }
 }
+
+/* ================= INVENTORY / PURCHASE / KITCHEN ================= */
+.stk-summary{font-size:13px;font-weight:600;color:#8a8a8a;margin-left:8px;}
+.stk-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;}
+.stk-badge.ok{background:#e8f5e9;color:#2e7d32;}
+.stk-badge.low{background:#fff4e0;color:#b26a00;}
+.stk-badge.out{background:#fdecea;color:#c62828;}
+.kt-layout{display:flex;gap:20px;align-items:flex-start;}
+.kt-main{flex:1;min-width:0;}
+.kt-card.kt-empty{opacity:.55;}
+.kt-stock{margin-top:2px;}
+.kt-qty-input{width:64px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;text-align:center;font-size:13px;}
+.kt-warn{color:#c62828;font-size:13px;font-weight:700;margin-top:8px;min-height:0;}
+.ku-hl{background:#fff8ec;font-weight:700;}
+@media (max-width:900px){
+  .kt-layout{flex-direction:column;}
+  .kt-bill{width:100%;position:static;}
+}
+
+.stk-help{font-size:12.5px;color:#777;background:#faf7f2;border:1px dashed #e6dccd;border-radius:10px;padding:10px 12px;margin:0 0 14px;line-height:1.6;}
+
+/* low-stock notifications in the bell */
+.stk-notif-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px dashed #eee;font-size:13px;}
+.stk-notif-row:first-of-type{border-top:none;}
+.stk-notif-sub{color:#999;font-size:11.5px;margin-top:2px;}
+.stk-notif-x{border:1px solid #ddd;background:#fff;border-radius:8px;width:26px;height:26px;flex-shrink:0;color:#666;font-weight:700;cursor:pointer;}
+.stk-notif-x:hover{background:#fff3f0;color:var(--ember);}
+.stk-notif-all{margin:6px 0 2px;border:none;background:none;color:var(--ember);font-weight:700;font-size:12px;cursor:pointer;padding:0;}
+.kt-clear-link{display:block;margin:10px auto 0;border:none;background:none;color:#888;font-size:13px;text-decoration:underline;cursor:pointer;}

@@ -288,6 +288,10 @@
         <button class="admin-nav-btn" id="adminNavMenu" onclick="showAdminSection('menu')"><span class="nicon">🍔</span><span>Menu Management</span></button>
         <button class="admin-nav-btn" id="adminNavDeals" onclick="showAdminSection('deals')"><span class="nicon">🔥</span><span>Limited Deals</span></button>
         <button class="admin-nav-btn" id="adminNavExpenses" onclick="showAdminSection('expenses')"><span class="nicon">💰</span><span>Expenses</span></button>
+        <button class="admin-nav-btn" id="adminNavInventory" onclick="showAdminSection('inventory')"><span class="nicon">📦</span><span>Inventory / Stock</span></button>
+        <button class="admin-nav-btn" id="adminNavPurchase" onclick="showAdminSection('purchase')"><span class="nicon">🛍️</span><span>Purchase</span></button>
+        <button class="admin-nav-btn" id="adminNavKitchen" onclick="showAdminSection('kitchen')"><span class="nicon">🍳</span><span>Kitchen Bill</span></button>
+        <button class="admin-nav-btn" id="adminNavKitchenReport" onclick="showAdminSection('kitchenreport')"><span class="nicon">📊</span><span>Kitchen Usage</span></button>
         <button class="admin-nav-btn" id="adminNavSettings" onclick="showAdminSection('settings')"><span class="nicon">⚙</span><span>Settings</span></button>
       </nav>
     </aside>
@@ -712,6 +716,169 @@
       </div>
       <!-- ================= /EXPENSES ================= -->
 
+      <!-- ================= INVENTORY / PURCHASE / KITCHEN ================= -->
+      <div class="admin-section hidden" id="secInventory">
+        <div class="panel">
+          <h3>📦 Inventory / Stock <span id="stockSummary" class="stk-summary"></span></h3>
+          <div class="expense-form">
+            <div class="expense-field" style="flex:2;min-width:200px;">
+              <label for="stkName">Item name</label>
+              <input type="text" id="stkName" placeholder="e.g. Eggs, Chicken, Cooking oil">
+            </div>
+            <div class="expense-field" style="max-width:150px;">
+              <label for="stkUnit">Stock unit (how you buy it)</label>
+              <select id="stkUnit" onchange="stockUnitChanged()"></select>
+            </div>
+            <div class="expense-field" style="max-width:170px;">
+              <label for="stkUseUnit">Kitchen uses it in</label>
+              <select id="stkUseUnit" onchange="stockUnitChanged()"></select>
+            </div>
+            <div class="expense-field hidden" id="stkFactorWrap" style="max-width:190px;">
+              <label for="stkFactor" id="stkFactorLabel">1 unit = how many?</label>
+              <input type="number" id="stkFactor" min="0" step="any" placeholder="e.g. 12">
+            </div>
+            <div class="expense-field" style="max-width:170px;">
+              <label for="stkQty" id="stkQtyLabel">Quantity you have now</label>
+              <input type="number" id="stkQty" min="0" step="any" placeholder="0">
+            </div>
+            <div class="expense-field" style="max-width:170px;">
+              <label for="stkMin">Warn me when below (optional)</label>
+              <input type="number" id="stkMin" min="0" step="any" placeholder="e.g. 2">
+            </div>
+            <button class="add-expense-btn" id="stkSaveBtn" onclick="stockSaveItem()">➕ Add Item</button>
+            <button class="add-expense-btn hidden" id="stkCancelBtn" onclick="stockResetForm()" style="background:#666;">Cancel</button>
+            <span class="price-saved-tag" id="stkSavedTag">Saved ✓</span>
+          </div>
+          <p class="stk-help">
+            <b>Quantity you have now</b> = how much is in the kitchen today. &nbsp;
+            <b>Warn me when below</b> = optional; the item turns orange when stock goes under this number.<br>
+            <b>Example — Eggs:</b> Stock unit <i>dozen</i>, Kitchen uses it in <i>piece</i>, 1 dozen = <i>12</i>. You buy in dozen, but in the kitchen bill you pick pieces.
+          </p>
+          <div class="expense-field" style="margin-bottom:12px;">
+            <label for="stockSearchInput">🔍 Search items</label>
+            <input type="text" id="stockSearchInput" placeholder="Search stock..." oninput="renderInventory()">
+          </div>
+          <table>
+            <thead><tr><th>Item</th><th>In Stock</th><th>Warn Below</th><th>Status</th><th></th></tr></thead>
+            <tbody id="stockTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-section hidden" id="secPurchase">
+        <div class="panel">
+          <h3><span id="purFormTitle">🛍️ Add Purchase</span> <span style="font-size:13px;font-weight:600;color:#8a8a8a;">— stock increases automatically</span></h3>
+          <div class="expense-form">
+            <div class="expense-field" style="flex:2;min-width:200px;">
+              <label for="purItem">Stock item</label>
+              <select id="purItem" onchange="purchaseFormChanged()"></select>
+            </div>
+            <div class="expense-field" style="max-width:170px;">
+              <label for="purQty" id="purUnitLabel">Quantity</label>
+              <input type="number" id="purQty" min="0" step="any" placeholder="0" oninput="purchaseFormChanged()">
+            </div>
+            <div class="expense-field" style="max-width:190px;">
+              <label for="purPrice" id="purRateLabel">Price per unit (Rs)</label>
+              <input type="number" id="purPrice" min="0" step="any" placeholder="0" oninput="purchaseFormChanged()">
+            </div>
+            <div class="expense-field" style="max-width:190px;">
+              <label for="purSupplier">Supplier (optional)</label>
+              <input type="text" id="purSupplier" placeholder="Shop / vendor">
+            </div>
+            <div class="expense-field" style="max-width:170px;">
+              <label for="purDate">Date</label>
+              <input type="date" id="purDate">
+            </div>
+            <button class="add-expense-btn" id="purSaveBtn" onclick="purchaseSave()">✅ Save Purchase</button>
+            <button class="add-expense-btn hidden" id="purCancelBtn" onclick="purchaseCancelEdit()" style="background:#666;">Cancel</button>
+            <span class="price-saved-tag" id="purSavedTag">Saved ✓</span>
+          </div>
+          <div id="purTotalPreview" class="stk-summary" style="font-size:14px;">Total: Rs 0</div>
+        </div>
+        <div class="panel">
+          <h3>🧾 Purchase History</h3>
+          <div class="expense-form">
+            <div class="expense-field" style="max-width:180px;">
+              <label for="purRange">View by</label>
+              <select id="purRange" onchange="renderPurchaseHistory()">
+                <option value="daily">Daily</option><option value="weekly">Weekly</option>
+                <option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="expense-field" style="max-width:220px;">
+              <label for="purReportDate">Pick a date</label>
+              <input type="date" id="purReportDate" onchange="renderPurchaseHistory()">
+            </div>
+            <div class="expense-field">
+              <label for="purSearchInput">🔍 Search (item, supplier)</label>
+              <input type="text" id="purSearchInput" oninput="renderPurchaseHistory()" placeholder="e.g. chicken">
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Date</th><th>Time</th><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th><th>Supplier</th><th></th></tr></thead>
+            <tbody id="purchaseTableBody"></tbody>
+          </table>
+          <div class="expense-total-row"><span>Total Purchases (this period)</span><span id="purchaseGrandTotal">Rs 0</span></div>
+        </div>
+      </div>
+
+      <div class="admin-section hidden" id="secKitchen">
+        <div class="kt-layout">
+          <div class="kt-main">
+            <input class="search-box" id="kitchenSearchInput" placeholder="Search stock items..." oninput="renderKitchenGrid()">
+            <div class="product-grid" id="kitchenGrid"></div>
+          </div>
+          <div class="bill-panel kt-bill">
+            <div class="bill-header" id="kitchenBillHeader">🍳 Kitchen Bill</div>
+            <div id="kitchenBillItems"><div class="bill-empty">Tap stock items to add them to the kitchen bill.</div></div>
+            <div class="expense-field" style="margin-top:12px;">
+              <label for="kitchenNote">Note (optional)</label>
+              <input type="text" id="kitchenNote" placeholder="e.g. Lunch prep, Biryani batch">
+            </div>
+            <div id="kitchenWarn" class="kt-warn"></div>
+            <button class="charge-btn" id="kitchenSaveBtn" onclick="kitchenSave()" disabled>🖨️ Save, Deduct &amp; Print</button>
+            <button type="button" class="kt-clear-link" onclick="kitchenClear()">Clear bill</button>
+            <button type="button" class="kt-clear-link hidden" id="kitchenCancelBtn" onclick="kitchenCancelEdit()">Cancel edit</button>
+            <span class="price-saved-tag" id="kitchenSavedTag" style="margin-top:8px;">Saved ✓</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-section hidden" id="secKitchenReport">
+        <div class="panel">
+          <h3>📊 Kitchen Usage</h3>
+          <div class="expense-form">
+            <div class="expense-field" style="max-width:180px;">
+              <label for="kuRange">Highlight / list by</label>
+              <select id="kuRange" onchange="renderKitchenReport()">
+                <option value="daily">Daily</option><option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option><option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="expense-field" style="max-width:220px;">
+              <label for="kuDate">Pick a date (defaults to today)</label>
+              <input type="date" id="kuDate" onchange="renderKitchenReport()">
+            </div>
+            <div class="expense-field">
+              <label for="kuSearch">🔍 Search item</label>
+              <input type="text" id="kuSearch" oninput="renderKitchenReport()" placeholder="e.g. oil">
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Item</th><th>Day</th><th>Week</th><th>Month</th><th>Year</th></tr></thead>
+            <tbody id="kitchenUsageBody"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h3>🧾 Kitchen Bills</h3>
+          <table>
+            <thead><tr><th>Bill</th><th>Date</th><th>Time</th><th>Items used</th><th>Note</th><th></th></tr></thead>
+            <tbody id="kitchenLogBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ================= /INVENTORY / PURCHASE / KITCHEN ================= -->
+
       <!-- ================= SETTINGS ================= -->
       <div class="admin-section hidden" id="secSettings">
       <div class="panel">
@@ -936,6 +1103,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script src="script.js"></script>
+<script src="inventory.js"></script>
 
 <script src="mobile-menu.js"></script>
 </body>
