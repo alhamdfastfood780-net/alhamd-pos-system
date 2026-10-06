@@ -1,4 +1,4 @@
-  function toggleProfileMenu(){
+function toggleProfileMenu(){
 
     document.getElementById("profileDropdown").classList.toggle("show");
 
@@ -44,6 +44,12 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+// QUOTA SAVER: keep a copy of the data on each device. After the first load, sales / expenses /
+// stock are served from this local copy and only the changes are fetched, so reopening the POS
+// no longer re-reads everything. Safe to fail (private tabs, old browsers) — the app still works.
+db.enablePersistence({ synchronizeTabs: true }).catch(function(err){
+  console.warn("Offline cache not enabled:", err && err.code);
+});
 
 /* ============================================================
    REPLACE your existing PRODUCTS array (from `const PRODUCTS = [`
