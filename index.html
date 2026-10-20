@@ -565,7 +565,10 @@
     <div id="pmImagePreviewWrap" style="margin:4px 0 14px;"></div>
 
     <label class="delivery-enable-toggle" style="margin-bottom:12px;">
+      <span class="delivery-switch">
       <input type="checkbox" id="pmHasVariants" onchange="pmToggleVariantMode(this.checked)">
+      <span class="delivery-slider"></span>
+    </span>
       This product has multiple sizes / variations
     </label>
 
@@ -884,7 +887,10 @@
       <div class="panel">
         <h3>🚚 Delivery Charge Settings</h3>
         <label class="delivery-enable-toggle">
-          <input type="checkbox" id="deliveryEnabledToggle" onchange="updateDeliveryEnabled(this.checked)">
+          <span class="delivery-switch">
+      <input type="checkbox" id="deliveryEnabledToggle" onchange="updateDeliveryEnabled(this.checked)">
+      <span class="delivery-slider"></span>
+    </span>
           Allow salesman to select delivery on a bill
         </label>
         <p style="color:#8a8a8a;font-size:13px;margin:8px 0 16px;">When turned off, the delivery option won't appear on the salesman's bill at all — every bill will be charged with no delivery fee. When turned on, the salesman can pick "Free" or the paid amount below.</p>

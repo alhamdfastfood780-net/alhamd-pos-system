@@ -405,15 +405,22 @@
 .da-empty { text-align: center; color: #999; padding: 40px 16px; font-size: .9rem; }
 
 /* ---- toggle switch (used in list + modal) ---- */
-.da-switch { position: relative; display: inline-block; width: 46px; height: 27px; flex-shrink: 0; }
+/* Design from Uiverse.io by mrhyddenn */
+.da-switch { font-size: 17px; position: relative; display: inline-block; width: 62px; height: 35px; flex-shrink: 0; }
 .da-switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; cursor: pointer; z-index: 1; }
-.da-switch-track { position: absolute; inset: 0; background: #ddd; border-radius: 999px; transition: .2s; }
-.da-switch-track::before {
-  content: ""; position: absolute; width: 21px; height: 21px; left: 3px; top: 3px;
-  background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+.da-switch-track {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: #fff; border: 1px solid #ccc; border-radius: 30px;
+  transition: .4s; cursor: pointer;
 }
-.da-switch input:checked + .da-switch-track { background: var(--da-green); }
-.da-switch input:checked + .da-switch-track::before { transform: translateX(19px); }
+.da-switch-track::before {
+  position: absolute; content: ""; height: 1.9em; width: 1.9em;
+  border-radius: 16px; left: 1.2px; top: 0; bottom: 0;
+  background-color: #fff; box-shadow: 0 2px 5px #999999;
+  transition: .4s;
+}
+.da-switch input:checked + .da-switch-track { background-color: #5fdd54; border: 1px solid transparent; }
+.da-switch input:checked + .da-switch-track::before { transform: translateX(1.5em); }
 
 /* ---- modal overlay (full-screen sheet on phones) ---- */
 .da-overlay {

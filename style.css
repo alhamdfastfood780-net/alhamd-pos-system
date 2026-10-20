@@ -514,19 +514,21 @@
   .delivery-row{margin:14px 0 6px;padding-top:14px;border-top:1px dashed #eee;}
   .delivery-toggle-wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .delivery-label{font-weight:700;font-size:13px;color:#444;}
+  /* Switch design from Uiverse.io by mrhyddenn */
   .delivery-switch{
-    position:relative;display:inline-block;width:52px;height:30px;flex-shrink:0;
+    font-size:17px;position:relative;display:inline-block;width:62px;height:35px;flex-shrink:0;
   }
-  .delivery-switch input{opacity:0;width:0;height:0;}
+  .delivery-switch input{opacity:0;width:100%;height:100%;margin:0;position:absolute;cursor:pointer;z-index:1;}
   .delivery-slider{
-    position:absolute;inset:0;cursor:pointer;background:#ddd;border-radius:999px;transition:.2s;
+    position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+    background:#fff;transition:.4s;border-radius:30px;border:1px solid #ccc;
   }
   .delivery-slider:before{
-    content:"";position:absolute;height:24px;width:24px;left:3px;bottom:3px;
-    background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3);
+    position:absolute;content:"";height:1.9em;width:1.9em;border-radius:16px;
+    left:1.2px;top:0;bottom:0;background-color:#fff;box-shadow:0 2px 5px #999999;transition:.4s;
   }
-  .delivery-switch input:checked + .delivery-slider{background:var(--amber-deep);}
-  .delivery-switch input:checked + .delivery-slider:before{transform:translateX(22px);}
+  .delivery-switch input:checked + .delivery-slider{background-color:#5fdd54;border:1px solid transparent;}
+  .delivery-switch input:checked + .delivery-slider:before{transform:translateX(1.5em);}
   .delivery-charge-setting{
     display:flex;align-items:center;gap:10px;max-width:260px;
   }
@@ -539,6 +541,7 @@
     color:#222;cursor:pointer;
   }
   .delivery-enable-toggle input{width:18px;height:18px;cursor:pointer;}
+  .delivery-enable-toggle .delivery-switch input{width:100%;height:100%;}
 
   /* ---------- DISCOUNT ---------- */
   .discount-amount-wrap{margin-top:10px;display:flex;align-items:center;gap:8px;}
