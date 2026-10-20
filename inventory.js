@@ -69,12 +69,17 @@
     renderAll();
   }, (err) => console.error('Stock listen failed:', err));
 
-  purchaseCol.orderBy('date', 'desc').onSnapshot((snap) => {
+  // QUOTA SAVER: only load this year + last year (dates are saved as ISO strings, so
+  // a string comparison works). Before, EVERY purchase / kitchen bill ever saved was
+  // re-read on every page open on every device, which is what used up the free quota.
+  const HISTORY_FROM = new Date(new Date().getFullYear() - 1, 0, 1).toISOString();
+
+  purchaseCol.where('date', '>=', HISTORY_FROM).orderBy('date', 'desc').onSnapshot((snap) => {
     purchases = snap.docs.map(d => Object.assign({ id: d.id }, d.data(), { date: new Date(d.data().date) }));
     renderPurchaseHistory();
   }, (err) => console.error('Purchases listen failed:', err));
 
-  kitchenCol.orderBy('date', 'desc').onSnapshot((snap) => {
+  kitchenCol.where('date', '>=', HISTORY_FROM).orderBy('date', 'desc').onSnapshot((snap) => {
     kitchenBills = snap.docs.map(d => Object.assign({ id: d.id }, d.data(), { date: new Date(d.data().date) }));
     renderKitchenReport();
   }, (err) => console.error('Kitchen usage listen failed:', err));
@@ -195,7 +200,7 @@
 
   window.stockDeleteItem = function(id){
     const i = findItem(id); if(!i) return;
-    showConfirmModal('Delete stock item?',
+    guardedConfirm('Delete stock item?',
       '"' + i.name + '" will be removed from inventory. Past purchase and kitchen records stay in the history.',
       '🗑️ Yes, Delete',
       function(){ stockCol.doc(id).delete().catch(err => { console.error(err); alert('Could not delete.'); }); },
@@ -326,7 +331,7 @@
 
   window.purchaseDelete = function(id){
     const p = purchases.find(x => x.id === id); if(!p) return;
-    showConfirmModal('Delete this purchase?',
+    guardedConfirm('Delete this purchase?',
       fmtQty(p.qty) + ' ' + p.unit + ' of ' + p.itemName + ' will be removed from the history and taken out of stock too (stock never goes below 0).',
       '🗑️ Yes, Delete',
       function(){
@@ -464,54 +469,78 @@
     const warn = $('kitchenWarn'); if(warn) warn.textContent = anyOver ? 'Some quantities are more than what is in stock.' : '';
   }
 
+  /* ONE button: Save & Print.
+     - ONE batched commit = new kitchen bill row + every stock deduction together
+       (all-or-nothing). It uses the stock numbers already on screen, so there are
+       no extra reads before saving.
+     - Printing uses the bill already in memory, so it makes ZERO database calls.
+     - `savingKitchen` blocks double-taps so one click can never write twice. */
+  let savingKitchen = false;
+
+  function friendlySaveError(err, fallback){
+    const code = err && err.code;
+    if(code === 'resource-exhausted' || /quota/i.test((err && err.message) || ''))
+      return 'The free Firebase daily limit is used up, so nothing was saved. It resets every day at about 12:00 noon Pakistan time. Upgrade the Firebase project to the Blaze plan to remove this stop.';
+    return (err && err.message) ? err.message : fallback;
+  }
+
   window.kitchenSave = function(){
     if(editingKitchenId){ kitchenUpdate(); return; }
-    if(!kitchenCart.length) return;
+    if(savingKitchen || !kitchenCart.length) return;
+
     const cart = kitchenCart.map(l => ({ id: l.id, qty: l.qty }));
+    const lines = [], deducts = [];
+    for(const l of cart){
+      const d = findItem(l.id);
+      if(!d){ alert('An item was removed from stock.'); return; }
+      const factor = factorOf(d);
+      const useUnit = useUnitOf(d);
+      const deduct = r6(l.qty / factor);                  // e.g. 3 piece -> 0.25 dozen
+      if(deduct > d.qty + 1e-6){
+        alert('Not enough ' + d.name + ' in stock (only ' + fmtQty(d.qty * factor) + ' ' + useUnit + ' left).');
+        return;
+      }
+      deducts.push(deduct);
+      lines.push({ itemId: d.id, name: d.name, unit: useUnit, qty: l.qty, stockQty: deduct, stockUnit: d.unit });
+    }
+
     const note = ($('kitchenNote').value || '').trim();
     const usedBy = (typeof currentUser !== 'undefined' && currentUser && currentUser.name) ? currentUser.name : 'Owner';
     const maxNo = kitchenBills.reduce((m, x) => Math.max(m, parseInt(String(x.billNo || '').replace(/\D/g, ''), 10) || 0), 0);
     const billNo = 'K-' + String(Math.max(maxNo, kitchenBills.length) + 1).padStart(4, '0');
     const when = new Date();
-    const saveBtn = $('kitchenSaveBtn');
-    saveBtn.disabled = true;
-    let printed = null;
+    const bill = { billNo, date: when, usedBy, note, items: lines };
 
-    db.runTransaction(async (tx) => {
-      const refs  = cart.map(l => stockCol.doc(l.id));
-      const snaps = await Promise.all(refs.map(r => tx.get(r)));
-      const lines = [], deducts = [];
-      snaps.forEach((s, i) => {
-        if(!s.exists) throw new Error('An item was removed from stock.');
-        const d = s.data();
-        const factor = Number(d.useFactor) > 0 ? Number(d.useFactor) : 1;
-        const useUnit = d.useUnit || d.unit;
-        const deduct = r6(cart[i].qty / factor);          // e.g. 3 piece -> 0.25 dozen
-        if(deduct > (Number(d.qty) || 0) + 1e-6)
-          throw new Error('Not enough ' + d.name + ' in stock (only ' + fmtQty((Number(d.qty) || 0) * factor) + ' ' + useUnit + ' left).');
-        deducts.push(deduct);
-        lines.push({ itemId: s.id, name: d.name, unit: useUnit, qty: cart[i].qty, stockQty: deduct, stockUnit: d.unit });
-      });
-      snaps.forEach((s, i) => tx.update(refs[i], { qty: FV.increment(-deducts[i]) }));
-      tx.set(kitchenCol.doc(), { billNo, date: when.toISOString(), usedBy, note, items: lines });
-      printed = { billNo, date: when, usedBy, note, items: lines };
-    }).then(() => {
+    savingKitchen = true;
+    const saveBtn = $('kitchenSaveBtn');
+    saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…';
+
+    const batch = db.batch();
+    batch.set(kitchenCol.doc(), { billNo, date: when.toISOString(), usedBy, note, items: lines });
+    cart.forEach((l, i) => batch.update(stockCol.doc(l.id), { qty: FV.increment(-deducts[i]) }));
+
+    batch.commit().then(() => {
       kitchenCart = []; $('kitchenNote').value = '';
-      renderKitchenBill(); flash('kitchenSavedTag');
-      if(printed) printKitchenBill(printed);      // always print after saving
+      flash('kitchenSavedTag');
+      printKitchenBill(bill);                             // print from memory — no database call
     }).catch(err => {
       console.error(err);
-      alert(err && err.message ? err.message : 'Could not save kitchen bill.');
+      alert(friendlySaveError(err, 'Could not save kitchen bill.'));
+    }).finally(() => {
+      savingKitchen = false;
+      saveBtn.textContent = KITCHEN_SAVE_LABEL;
       renderKitchenBill();
     });
   };
 
   /* ---- edit / delete a kitchen bill (stock is corrected automatically) ---- */
+  const KITCHEN_SAVE_LABEL = '🖨️ Save & Print';
   function kitchenEditUI(on){
     $('kitchenBillHeader').textContent = on ? '✏️ Edit Kitchen Bill ' + ((kitchenBills.find(x => x.id === editingKitchenId) || {}).billNo || '') : '🍳 Kitchen Bill';
-    $('kitchenSaveBtn').textContent = on ? '💾 Update Bill' : '🖨️ Save, Deduct & Print';
+    $('kitchenSaveBtn').textContent = on ? '💾 Update Bill' : KITCHEN_SAVE_LABEL;
     $('kitchenCancelBtn').classList.toggle('hidden', !on);
   }
+  if($('kitchenSaveBtn')) $('kitchenSaveBtn').textContent = KITCHEN_SAVE_LABEL;   // one button: saves, deducts stock and prints
 
   window.kitchenEdit = function(id){
     const b = kitchenBills.find(x => x.id === id); if(!b) return;
@@ -539,6 +568,8 @@
     const cart = kitchenCart.map(l => ({ id: l.id, qty: l.qty }));
     const note = ($('kitchenNote').value || '').trim();
     const bRef = kitchenCol.doc(id);
+    if(savingKitchen) return;
+    savingKitchen = true;
     const saveBtn = $('kitchenSaveBtn'); saveBtn.disabled = true;
 
     db.runTransaction(async (tx) => {
@@ -578,14 +609,14 @@
       kitchenCancelEdit(); flash('kitchenSavedTag');
     }).catch(err => {
       console.error(err);
-      alert(err && err.message ? err.message : 'Could not update kitchen bill.');
+      alert(friendlySaveError(err, 'Could not update kitchen bill.'));
       renderKitchenBill();
-    });
+    }).finally(() => { savingKitchen = false; });
   }
 
   window.kitchenDelete = function(id){
     const b = kitchenBills.find(x => x.id === id); if(!b) return;
-    showConfirmModal('Delete kitchen bill ' + (b.billNo || '') + '?',
+    guardedConfirm('Delete kitchen bill ' + (b.billNo || '') + '?',
       'This bill will be removed and the used items will be added back to stock.',
       '🗑️ Yes, Delete',
       function(){

@@ -717,26 +717,30 @@ function deleteExpense(expenseNo){
     const target = expenses.find(e => e.expenseNo === expenseNo);
     if(!target || target.addedByUsername !== currentUser.username) return; // salesmen may only delete their own
   }
-  expenses = expenses.filter(e => e.expenseNo !== expenseNo);
-syncDeleteExpenseToCloud(expenseNo);
-renderExpensesSalesman();
-  if(currentUser.role === 'owner') renderOwnerDashboard();
+  requireDeletePin('Delete expense?', 'This expense record will be deleted.', function(){
+    expenses = expenses.filter(e => e.expenseNo !== expenseNo);
+    syncDeleteExpenseToCloud(expenseNo);
+    renderExpensesSalesman();
+    if(currentUser && currentUser.role === 'owner') renderOwnerDashboard();
+  }, '🗑️');
 }
 
 function ownerDeleteExpense(expenseNo){
   if(!currentUser || currentUser.role !== 'owner') return;
-  if(!confirm('Delete this expense record permanently?')) return;
- expenses = expenses.filter(e => e.expenseNo !== expenseNo);
-syncDeleteExpenseToCloud(expenseNo);
-renderOwnerDashboard();
+  guardedConfirm('Delete expense?', 'This expense record will be deleted permanently.', '🗑️ Yes, Delete', function(){
+    expenses = expenses.filter(e => e.expenseNo !== expenseNo);
+    syncDeleteExpenseToCloud(expenseNo);
+    renderOwnerDashboard();
+  }, '🗑️');
 }
 
 function deleteSale(billNo){
   if(!currentUser || currentUser.role !== 'owner') return;
-  if(!confirm('Delete bill ' + billNo + ' permanently? This cannot be undone.')) return;
-  sales = sales.filter(s => s.billNo !== billNo);
-  syncDeleteToCloud(billNo);
-  renderOwnerDashboard();
+  guardedConfirm('Delete bill ' + billNo + '?', 'This bill will be deleted permanently. This cannot be undone.', '🗑️ Yes, Delete', function(){
+    sales = sales.filter(s => s.billNo !== billNo);
+    syncDeleteToCloud(billNo);
+    renderOwnerDashboard();
+  }, '🗑️');
 }
 
 function expensesTodayList(){
@@ -1440,13 +1444,14 @@ function pmDeleteCategory(cat){
     alert('This category still has products in it. Move or delete those products first.');
     return;
   }
-  if(!confirm(`Delete category "${cat}"?`)) return;
-  EXTRA_CATEGORIES = EXTRA_CATEGORIES.filter(c => c !== cat);
-  saveAllProducts();
-  pmRenderCategoryManager();
-  pmRefreshCategorySelect();
-  renderCategories();
-  if(document.getElementById('priceCatRow')) renderPriceCategories();
+  guardedConfirm('Delete category?', `"${cat}" will be removed.`, '🗑️ Yes, Delete', function(){
+    EXTRA_CATEGORIES = EXTRA_CATEGORIES.filter(c => c !== cat);
+    saveAllProducts();
+    pmRenderCategoryManager();
+    pmRefreshCategorySelect();
+    renderCategories();
+    if(document.getElementById('priceCatRow')) renderPriceCategories();
+  }, '🗑️');
 }
 
 function pmRenderCategoryManager(){
@@ -1547,13 +1552,14 @@ function pmEditProduct(id){
 function pmDeleteProduct(id){
   const p = PRODUCTS.find(x => x.id === id);
   if(!p) return;
-  if(!confirm(`Delete "${p.name}" permanently? This cannot be undone.`)) return;
-  PRODUCTS = PRODUCTS.filter(x => x.id !== id);
-  saveAllProducts();
-  renderCategories();
-  if(document.getElementById('productGrid')) renderProducts();
-  renderPriceManager();
-  renderProductManagerList();
+  guardedConfirm('Delete product?', `"${p.name}" will be deleted permanently. This cannot be undone.`, '🗑️ Yes, Delete', function(){
+    PRODUCTS = PRODUCTS.filter(x => x.id !== id);
+    saveAllProducts();
+    renderCategories();
+    if(document.getElementById('productGrid')) renderProducts();
+    renderPriceManager();
+    renderProductManagerList();
+  }, '🗑️');
 }
 
 function pmSetFilterCat(c){ pmFilterCat = c; renderProductManagerList(); }
@@ -2074,8 +2080,11 @@ function editBillChangeQty(idx, delta){
 
 function editBillRemoveItem(idx){
   if(!editingBill) return;
-  editingBill.items.splice(idx, 1);
-  renderEditBillItems();
+  requireDeletePin('Remove item?', 'This item will be removed from the bill.', function(){
+    if(!editingBill) return;
+    editingBill.items.splice(idx, 1);
+    renderEditBillItems();
+  }, '🗑️');
 }
 
 function editBillSearchProducts(){
@@ -3380,15 +3389,18 @@ NotificationSystem.init();
 
   deleteBtn.addEventListener("click", function () {
     if (editingIndex === null) return;
-    if (!confirm("Delete this deal? This can't be undone.")) return;
-    const removed = DEALS.splice(editingIndex, 1);
-    saveDealsArray()
-      .then(closeModal)
-      .catch(function (err) {
-        console.error(err);
-        DEALS.splice(editingIndex, 0, removed[0]);
-        setStatus("Couldn't delete — try again.", "err");
-      });
+    guardedConfirm("Delete this deal?", "This can't be undone.", "🗑️ Yes, Delete", function () {
+      if (editingIndex === null) return;
+      const idx = editingIndex;
+      const removed = DEALS.splice(idx, 1);
+      saveDealsArray()
+        .then(closeModal)
+        .catch(function (err) {
+          console.error(err);
+          DEALS.splice(idx, 0, removed[0]);
+          setStatus("Couldn't delete — try again.", "err");
+        });
+    }, "🗑️");
   });
 
   function saveDealsArray() {

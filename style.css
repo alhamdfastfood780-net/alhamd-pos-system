@@ -1,4 +1,4 @@
-  :root{
+:root{
     --ink:#1c1310;
     --cream:#fbf7f2;
     --amber:#f5a623;
@@ -793,3 +793,9 @@ body{ padding-bottom:env(safe-area-inset-bottom); }
   .expense-field{ min-width:0; }
 }
 
+  #confirmModal{z-index:10000;}
+
+  /* hide every delete button unless the main admin (Zaid) is signed in */
+  body.no-delete [onclick*="elete"],
+  body.no-delete [onclick*="editBillRemoveItem"],
+  body.no-delete #daDeleteBtn{display:none !important;}
