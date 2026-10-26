@@ -448,7 +448,7 @@ settingsDocRef.onSnapshot((doc) => {
   if (d.ownerPassword) OWNER_ACCOUNT.password = d.ownerPassword;
   if (d.ownerPhoto) OWNER_ACCOUNT.photo = d.ownerPhoto;
   if (d.ownerName) {
-    OWNER_ACCOUNT.name = d.ownerName;
+    OWNER_ACCOUNT.name = fixOldOwnerName(d.ownerName);
   }
   if (d.ownerRole) {
     OWNER_ACCOUNT.role = d.ownerRole;
@@ -873,7 +873,12 @@ function togglePasswordVisibility(){
 const SALESMEN = [
   { username: "salesman", password: "sales123", photo: "https://i.imgur.com/2DhmtJ4.png" }
 ];
-const OWNER_ACCOUNT = { username: "owner", password: "owner123", name: "Choudhary ZAIN", role: "Owner", photo: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg" };
+/* The owner is now Zeeshan Bhatti. If an old saved name (local or cloud) still
+   shows the previous owner, swap it for the new owner name. */
+function fixOldOwnerName(n){
+  return (typeof n === "string" && /zain|chou?dh?a?ry|chaudh?a?ry/i.test(n)) ? "Zeeshan Bhatti" : n;
+}
+const OWNER_ACCOUNT = { username: "owner", password: "owner123", name: "Zeeshan Bhatti", role: "Owner", photo: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg" };
 
 /* Second admin — a real, separate login that lands on the same Owner
    dashboard, with its own "Admin" role. The Admin can change his own
@@ -939,7 +944,7 @@ function loadCredentials(){
       if(saved.owner.username) OWNER_ACCOUNT.username = saved.owner.username;
       if(saved.owner.password) OWNER_ACCOUNT.password = saved.owner.password;
       if(saved.owner.photo) OWNER_ACCOUNT.photo = saved.owner.photo;
-      if(saved.owner.name) OWNER_ACCOUNT.name = saved.owner.name;
+      if(saved.owner.name) OWNER_ACCOUNT.name = fixOldOwnerName(saved.owner.name);
       if(saved.owner.role) OWNER_ACCOUNT.role = saved.owner.role;
     }
     if(saved.admin){

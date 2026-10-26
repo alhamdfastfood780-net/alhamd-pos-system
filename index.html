@@ -11,9 +11,9 @@
 <meta name="apple-mobile-web-app-title" content="Alhamd POS">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/jpeg" sizes="192x192" href="img/icon-192.jpg">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
-<link rel="apple-touch-icon" href="img/apple-touch-icon.jpg">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -224,7 +224,7 @@
 
     <div class="app-footer">
       <div class="footer-credit"><a href="https://zaidali-self.vercel.app/">Designed &amp; Developed by <b>Zaid</b></a></div>
-      <div class="footer-owners">Owner: ZAIN CHUDHARY &amp; ZEESHAN BHATTI</div>
+      <div class="footer-owners">Owner: ZEESHAN BHATTI</div>
       <div class="footer-rights"><b>© 2026</b> All Rights Reserved</div>
     </div>
 
@@ -346,7 +346,7 @@
                     <img src="https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEYIt1qafO-e6ZnF-pg4KEkP0VbMJMdzAACNykAAvjGUFfvNjFgP6k6oT0E.jpeg" class="profile-img-large" id="ownerProfileImgLarge">
 
                     <div>
-                        <div id="ownerProfileName" style="font-size: 16px !important;font-weight:700;">Choudhary ZAIN</div>
+                        <div id="ownerProfileName" style="font-size: 16px !important;font-weight:700;">Zeeshan Bhatti</div>
                         <div id="ownerProfileRole" style="color:#777 !important;font-size:13px;margin-top:4px;">Owner</div>
                     </div>
 
@@ -947,7 +947,7 @@
           <div class="expense-form">
             <div class="expense-field">
               <label for="credOwnerName">Admin Display Name</label>
-              <input type="text" id="credOwnerName" placeholder="e.g. Choudhary Zain">
+              <input type="text" id="credOwnerName" placeholder="e.g. Zeeshan Bhatti">
             </div>
             <div class="expense-field">
               <label for="credOwnerRole">Role Shown in Profile</label>
@@ -996,6 +996,16 @@
 
         </div>
       </div>
+      <div class="panel" id="resetLedgerPanel">
+        <h3>🧹 Reset Ledger</h3>
+        <p style="color:#8a8a8a;font-size:13px;margin:-6px 0 16px;">Deletes ALL sales bills and ALL expense bills from the database so every ledger and total becomes zero. Menu items, prices and stock are NOT touched. This cannot be undone.</p>
+        <div class="expense-field">
+          <label for="resetLedgerConfirm">Type RESET to confirm</label>
+          <input type="text" id="resetLedgerConfirm" placeholder="RESET" autocomplete="off">
+        </div>
+        <button class="add-expense-btn" id="resetLedgerBtn" style="background:#c62828;" onclick="resetLedger()">Delete all bills &amp; expenses</button>
+        <p id="resetLedgerMsg" style="font-size:13px;margin:8px 0 0;"></p>
+      </div>
       </div>
       <!-- ================= /SETTINGS ================= -->
 
@@ -1003,7 +1013,7 @@
 
     <div class="app-footer">
       <div class="footer-credit"><a href="https://zaidali-self.vercel.app/">Designed &amp; Developed by <b>Zaid</b></a></div>
-      <div class="footer-owners">Owner: CHOUDHARY ZAIN &amp; ZEESHAN BHATTI</div>
+      <div class="footer-owners">Owner: ZEESHAN BHATTI</div>
       <div class="footer-rights"><b>© 2026</b> All Rights Reserved</div>
     </div>
 
@@ -1108,7 +1118,9 @@
 <script src="script.js"></script>
 <script src="inventory.js"></script>
 <script src="delete-pin.js"></script>
+<script src="reset-ledger.js"></script>
 
 <script src="mobile-menu.js"></script>
+<script src="pwa.js"></script>
 </body>
 </html>

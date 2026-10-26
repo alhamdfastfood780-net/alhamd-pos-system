@@ -1,8 +1,10 @@
 /* =====================================================================
    DELETE ACCESS CONTROL
-   - ONLY the main admin "Zaid" (SECOND_ADMIN_ACCOUNT) can delete anything.
-   - Owner and Salesman can add / edit, but every delete is blocked and
-     every delete button is hidden for them.
+   - The Owner (Zeeshan Bhatti) and the Admin can both delete anything.
+   - The Salesman can add / edit, but every delete is blocked and every
+     delete button is hidden for him.
+   - The Admin login stays hidden from the Owner exactly as before:
+     the Owner never sees the Admin's username, password or settings.
    - The old 4-digit PIN system has been removed completely.
 
    Every delete in script.js / inventory.js already goes through the two
@@ -10,16 +12,16 @@
    ===================================================================== */
 (function(){
 
-  /* true only when Zaid is signed in */
+  /* true when the Owner or the Admin is signed in (Salesman = false) */
   function canDelete(){
-    return typeof currentOwnerAccountRef !== 'undefined' &&
-           typeof SECOND_ADMIN_ACCOUNT !== 'undefined' &&
-           currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT;
+    if(typeof currentOwnerAccountRef === 'undefined' || !currentOwnerAccountRef) return false;
+    return (typeof OWNER_ACCOUNT !== 'undefined' && currentOwnerAccountRef === OWNER_ACCOUNT) ||
+           (typeof SECOND_ADMIN_ACCOUNT !== 'undefined' && currentOwnerAccountRef === SECOND_ADMIN_ACCOUNT);
   }
   window.canDelete = canDelete;
 
   function denied(){
-    alert('Only the main admin (Zaid) can delete. You can add and edit, but not delete.');
+    alert('Only the Owner can delete. You can add and edit, but not delete.');
   }
 
   /* delete that had NO confirmation box before */
@@ -34,7 +36,7 @@
     showConfirmModal(title, message, okLabel, onOk, icon);
   };
 
-  /* hide every delete button unless Zaid is signed in */
+  /* show delete buttons for Owner/Admin, hide them for the Salesman */
   function applyDeleteAccess(){
     document.body.classList.toggle('no-delete', !canDelete());
   }
